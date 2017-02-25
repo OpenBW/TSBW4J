@@ -6,7 +6,7 @@ import org.openbw.bwapi.DamageEvaluator;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class SupplyDepot extends Building implements Construction {
+public class SupplyDepot extends Building implements Construction, Mechanical {
 
 	private static SupplyDepot constructionInstance = null;
 	

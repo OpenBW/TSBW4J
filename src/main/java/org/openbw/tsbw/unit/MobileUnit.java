@@ -38,10 +38,6 @@ public class MobileUnit extends PlayerUnit {
 		return super.bwUnit.getTargetPosition();
 	}
 
-	public int getSightRange() {
-		return super.unitType.sightRange();
-	}
-	
 	public boolean move(Position target, boolean shiftQueueCommand) {
 		return super.bwUnit.move(target, shiftQueueCommand);
 	}

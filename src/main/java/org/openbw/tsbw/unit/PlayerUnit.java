@@ -84,16 +84,8 @@ public class PlayerUnit extends Unit {
 		return new TilePosition((this.lastKnownPosition.getX() - this.unitType.dimensionLeft()) / 32, (this.lastKnownPosition.getY() - this.unitType.dimensionUp()) / 32);
 	}
 	
-	public boolean isAttacking() {
-		return bwUnit.isAttacking();
-	}
-	
-	public boolean isStartingAttack() {
-		return bwUnit.isStartingAttack();
-	}
-	
-	public boolean isAttackFrame() {
-		return bwUnit.isAttackFrame();
+	public int getSightRange() {
+		return this.unitType.sightRange();
 	}
 	
 	public boolean isFlying() {

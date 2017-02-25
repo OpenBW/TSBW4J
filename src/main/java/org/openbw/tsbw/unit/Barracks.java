@@ -7,7 +7,7 @@ import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Barracks extends Building implements Construction {
+public class Barracks extends Building implements Construction, Mechanical {
 
 	private static Barracks constructionInstance = null;
 	
@@ -33,6 +33,18 @@ public class Barracks extends Building implements Construction {
 
 	public boolean trainMarine() {
 		return super.bwUnit.train(UnitType.Terran_Marine);
+	}
+
+	public boolean trainMedic() {
+		return super.bwUnit.train(UnitType.Terran_Medic);
+	}
+
+	public boolean trainFirebat() {
+		return super.bwUnit.train(UnitType.Terran_Firebat);
+	}
+
+	public boolean trainGhost() {
+		return super.bwUnit.train(UnitType.Terran_Ghost);
 	}
 
 	public boolean setRallyPoint(Position target) {

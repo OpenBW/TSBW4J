@@ -367,9 +367,4 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		
 		processIdleMiningWorkers();
 	}
-
-	@Override
-	public String toString() {
-		return "simple";
-	}
 }

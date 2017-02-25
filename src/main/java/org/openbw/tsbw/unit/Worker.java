@@ -17,6 +17,14 @@ public class Worker extends MobileUnit implements Mechanical {
 		return super.bwUnit.haltConstruction();
 	}
 	
+	public boolean gather(Refinery refinery) {
+		return super.bwUnit.gather(refinery.bwUnit);
+	}
+	
+	public boolean gather(Refinery refinery, boolean shiftQueueCommand) {
+		return super.bwUnit.gather(refinery.bwUnit, shiftQueueCommand);
+	}
+	
 	public boolean gather(MineralPatch mineralPatch) {
 		return super.bwUnit.gather(mineralPatch.bwUnit);
 	}

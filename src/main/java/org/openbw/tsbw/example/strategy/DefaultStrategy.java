@@ -33,6 +33,8 @@ public class DefaultStrategy extends AbstractGameStrategy {
 		public void onAdd(Worker worker) {
 			
 			logger.info("worker {} was added.", worker);
+			
+			// to start with, this is the only event we react to.
 			myUnitInventory.getMiningWorkers().add(worker);
 		}
 
@@ -155,7 +157,7 @@ public class DefaultStrategy extends AbstractGameStrategy {
 	@Override
 	public void initialize() {
 		
-		// do any one-time setup here
+		// do any initial one-time setup here
 	}
 
 	@Override

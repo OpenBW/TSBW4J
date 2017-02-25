@@ -3,10 +3,11 @@ package org.openbw.tsbw.unit;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
 
+import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Bunker extends Building implements Construction {
+public class Bunker extends Building implements Construction, Mechanical {
 
 	private static Bunker constructionInstance = null;
 	
@@ -24,5 +25,18 @@ public class Bunker extends Building implements Construction {
 			constructionInstance = new Bunker(bwMap);
 		}
 		return constructionInstance;
+	}
+	
+	public boolean load(MobileUnit unit) {
+		
+		return super.bwUnit.load(unit.bwUnit);
+	}
+	
+	public boolean unload(MobileUnit unit) {
+		return super.bwUnit.unload(unit.bwUnit);
+	}
+	
+	public boolean unloadAll() {
+		return super.bwUnit.unloadAll();
 	}
 }

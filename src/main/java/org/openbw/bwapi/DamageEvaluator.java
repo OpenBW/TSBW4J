@@ -7,7 +7,7 @@ import bwapi.UnitType;
 /**
  * Contains all damage-related bwapi functionality.
  */
-public class DamageEvaluator {
+public final class DamageEvaluator {
 
 	private Game game;
 	

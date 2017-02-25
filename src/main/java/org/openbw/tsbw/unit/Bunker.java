@@ -3,7 +3,6 @@ package org.openbw.tsbw.unit;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
 
-import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
 

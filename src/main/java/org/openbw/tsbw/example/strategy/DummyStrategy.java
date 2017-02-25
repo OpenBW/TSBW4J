@@ -20,7 +20,21 @@ import org.openbw.tsbw.unit.Worker;
 
 import bwapi.UnitType;
 
-public class DefaultStrategy extends AbstractGameStrategy {
+/**
+ * This is an extremely basic strategy to get you started.
+ * Take a look at the different listeners. This strategy reacts as follows to different events:
+ *  - own worker spawned: add it to the mining squad
+ *  - enemy army found: attack it with all we've got
+ *  - enemy building found: attack it with all we've got
+ *  - enemy building destroyed: go attack the next enemy building (if there is any)
+ *  
+ *  Apart from that the strategy 
+ *   - keeps building workers until it has 16 workers
+ *   - sends a scout at frame 3000
+ *   - builds supply depots as needed
+ *   - spends the rest of its available resources on barracks and marines
+ */
+public class DummyStrategy extends AbstractGameStrategy {
 
 	private static final Logger logger = LogManager.getLogger();
 	
@@ -34,7 +48,7 @@ public class DefaultStrategy extends AbstractGameStrategy {
 			
 			logger.info("worker {} was added.", worker);
 			
-			// to start with, this is the only event we react to.
+			// let's add every new worker to the mining squad by default
 			myUnitInventory.getMiningWorkers().add(worker);
 		}
 
@@ -108,6 +122,9 @@ public class DefaultStrategy extends AbstractGameStrategy {
 		public void onAdd(MobileUnit unit) {
 			
 			logger.info("enemy unit {} was added.", unit);
+			
+			// if we find an enemy, let's attack it with all our forces
+			myUnitInventory.getArmyUnits().stream().forEach(u -> u.attack(unit.getPosition()));
 		}
 
 		@Override
@@ -132,12 +149,20 @@ public class DefaultStrategy extends AbstractGameStrategy {
 		public void onAdd(Building building) {
 			
 			logger.info("enemy building {} was added.", building);
+			
+			// if we find an enemy building, let's move out to attack there with all our forces
+			myUnitInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
 		}
 
 		@Override
 		public void onRemove(Building building) {
 			
 			logger.info("enemy building {} was removed.", building);
+			
+			// if an enemy building was killed, let's go and attack the next one (if there is any)
+			if (!enemyUnitInventory.getBuildings().isEmpty()) {
+				myUnitInventory.getArmyUnits().stream().forEach(u -> u.attack(enemyUnitInventory.getBuildings().first().getPosition()));
+			}
 		}
 
 		@Override
@@ -147,7 +172,7 @@ public class DefaultStrategy extends AbstractGameStrategy {
 		}
 	};
 	
-	public DefaultStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
+	public DummyStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
 			UnitInventory myUnitInventory, UnitInventory enemyUnitInventory, BuildingPlanner buildingPlanner,
 			DamageEvaluator damageEvaluator) {
 	
@@ -174,7 +199,7 @@ public class DefaultStrategy extends AbstractGameStrategy {
 	}
 
 	@Override
-	public void run(int frame, int availableMinerals, int availableSupply) {
+	public void run(int frame, int availableMinerals, int availableGas, int availableSupply) {
 		
 		// at frame 3000 send out a single scout to explore the map.
 		// we do this by simply moving the first worker we find from the mining squad to the scouts squad.

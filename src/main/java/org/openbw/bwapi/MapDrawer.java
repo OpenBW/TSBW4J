@@ -7,7 +7,7 @@ import bwapi.Position;
 /**
  * Contains all map-drawing-related bwapi functionality.
  */
-public class MapDrawer {
+public final class MapDrawer {
 
 	private Game game;
 	private boolean drawingEnabled = true;

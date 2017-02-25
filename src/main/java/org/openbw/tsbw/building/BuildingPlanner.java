@@ -58,7 +58,9 @@ public class BuildingPlanner  {
 					return;
 				}
 			}
-			logger.warn("was informed that {} is completed, but can't find the building", building);
+			if (building != unitInventory.getMain()) {
+				logger.warn("was informed that {} is completed, but can't find the building", building);
+			}
 		}
 
 		@Override
@@ -149,6 +151,19 @@ public class BuildingPlanner  {
 		return uniqueIdCounter;
 	}
 
+	public int getQueuedGas() {
+		
+		int gas = 0;
+		for (ConstructionProject project : this.queue) {
+			if (project.getStatus().equals(ConstructionProject.Status.QUEUED)
+					|| project.getStatus().equals(ConstructionProject.Status.ABOUT_TO_CONSTRUCT)) {
+				
+				gas += project.getGasPrice();
+			}
+		}
+		return gas;
+	}
+	
 	public int getQueuedMinerals() {
 		
 		int minerals = 0;
@@ -178,7 +193,7 @@ public class BuildingPlanner  {
 		this.queue.add(project);
 	}
 	
-	public void run(int currentMinerals, int frameCount) {
+	public void run(int currentMinerals, int currentGas, int frameCount) {
 		
 		if (frameCount % 100 == 0) {
 			logger.debug("building queue size: {}", queue.size());
@@ -191,7 +206,9 @@ public class BuildingPlanner  {
 		for (ConstructionProject project : this.queue) {
 			if (project.getStatus() == ConstructionProject.Status.ABOUT_TO_CONSTRUCT) {
 				
-				if (!project.getAssignedWorker().isConstructing() && currentMinerals >= project.getMineralPrice() && project.isConstructionSiteVisible(bwMap)) {
+				if (!project.getAssignedWorker().isConstructing() && currentMinerals >= project.getMineralPrice() 
+						&& currentGas >= project.getGasPrice() && project.isConstructionSiteVisible(bwMap)) {
+					
 					boolean success = project.build();
 					if (!success) {
 						TilePosition newSite = project.getConstruction().getBuildTile(null, project.getConstructionSite(), unitInventory, this.getConstructionProjects());
@@ -221,6 +238,7 @@ public class BuildingPlanner  {
 					project.moveWorkerToSite();
 				}
 				currentMinerals -= project.getMineralPrice();
+				currentGas -= project.getGasPrice();
 			} else if (project.getStatus() == ConstructionProject.Status.QUEUED) {
 				
 				if (!project.hasConstructionSite() && !this.availableWorkers.isEmpty()) {
@@ -238,6 +256,8 @@ public class BuildingPlanner  {
 						estimatedMining = project.estimateMineralsMinedDuringTravel(this.unitInventory.getMiningWorkers().size() - 1);
 					}
 					
+					// TODO estimate gas mining as well and adjust moveout accordingly
+					
 					if (currentMinerals >= project.getMineralPrice() - estimatedMining) {
 					
 						logger.debug("estimated mining during travel: {}", estimatedMining);
@@ -252,6 +272,7 @@ public class BuildingPlanner  {
 					break;
 				}
 				currentMinerals -= project.getMineralPrice();
+				currentGas -= project.getGasPrice();
 			}
 		}
 	}
@@ -326,5 +347,4 @@ public class BuildingPlanner  {
 		}
 		return counter;
 	}
-
 }

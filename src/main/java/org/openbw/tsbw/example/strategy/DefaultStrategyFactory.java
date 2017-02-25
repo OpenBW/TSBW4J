@@ -11,15 +11,29 @@ import org.openbw.tsbw.strategy.StrategyFactory;
 
 public class DefaultStrategyFactory extends StrategyFactory {
 
+	public enum Type {DUMMY, BUILD_ORDER}
+	
+	private Type type;
+	
+	public DefaultStrategyFactory(Type type) {
+		
+		this.type = type;
+	}
+	
 	@Override
 	public AbstractGameStrategy getStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
 			UnitInventory myUnitInventory, UnitInventory enemyUnitInventory, BuildingPlanner buildingPlanner,
 			DamageEvaluator damageEvaluator) {
 		
-		AbstractGameStrategy gameStrategy = new DefaultStrategy(mapDrawer, bwMap, scoutingStrategy, myUnitInventory,
-				enemyUnitInventory, buildingPlanner, damageEvaluator);
-		
-		return gameStrategy;
+		if (type == Type.BUILD_ORDER) {
+			
+			return new BuildOrderStrategy(mapDrawer, bwMap, scoutingStrategy, myUnitInventory,
+					enemyUnitInventory, buildingPlanner, damageEvaluator);
+		} else {
+			
+			return new DummyStrategy(mapDrawer, bwMap, scoutingStrategy, myUnitInventory,
+					enemyUnitInventory, buildingPlanner, damageEvaluator);
+		}
 	}
 
 

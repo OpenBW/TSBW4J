@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 
 import org.openbw.tsbw.Constants;
 
-public class PPF2 {
+public final class PPF2 {
 
 	private static final Logger logger = LogManager.getLogger();
 	

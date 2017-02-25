@@ -4,6 +4,7 @@ import org.openbw.tsbw.Main;
 import org.openbw.tsbw.example.mining.DefaultMiningFactory;
 import org.openbw.tsbw.example.scouting.DefaultScoutingFactory;
 import org.openbw.tsbw.example.strategy.DefaultStrategyFactory;
+import org.openbw.tsbw.example.strategy.DefaultStrategyFactory.Type;
 import org.openbw.tsbw.strategy.MiningFactory;
 import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.StrategyFactory;
@@ -31,7 +32,9 @@ public class ExampleBot extends Main {
 		 */
 		MiningFactory miningFactory = new DefaultMiningFactory();
 		ScoutingFactory scoutingFactory = new DefaultScoutingFactory();
-		StrategyFactory strategyFactory = new DefaultStrategyFactory();
+		
+		// try changing the Type from DUMMY to BUILD_ORDER to use a different strategy
+		StrategyFactory strategyFactory = new DefaultStrategyFactory(Type.DUMMY);
 		
 		ExampleBot exampleBot = new ExampleBot(miningFactory, scoutingFactory, strategyFactory);
 		

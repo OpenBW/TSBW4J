@@ -12,7 +12,7 @@ import bwapi.UnitType;
 /**
  * Contains all map-related bwapi functionality.
  */
-public class BWMap {
+public final class BWMap {
 
 	private Game game;
 	

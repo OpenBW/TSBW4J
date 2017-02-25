@@ -10,7 +10,7 @@ import bwapi.Unit;
 /**
  * Contains all interaction-related bwapi functionality.
  */
-public class InteractionHandler {
+public final class InteractionHandler {
 
 	private Game game;
 	

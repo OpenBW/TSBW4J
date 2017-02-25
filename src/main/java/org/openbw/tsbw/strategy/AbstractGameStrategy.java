@@ -44,7 +44,8 @@ public abstract class AbstractGameStrategy {
 	 * Is called at every frame in the game.
 	 * @param frame
 	 * @param availableMinerals
+	 * @param availableGas
 	 * @param availableSupply
 	 */
-	public abstract void run(int frame, int availableMinerals, int availableSupply);
+	public abstract void run(int frame, int availableMinerals, int availableGas, int availableSupply);
 }

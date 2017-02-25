@@ -18,20 +18,40 @@ import org.openbw.tsbw.strategy.MiningStrategy;
 import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
+import org.openbw.tsbw.unit.Academy;
+import org.openbw.tsbw.unit.Armory;
 import org.openbw.tsbw.unit.Barracks;
+import org.openbw.tsbw.unit.Battlecruiser;
 import org.openbw.tsbw.unit.Building;
 import org.openbw.tsbw.unit.Bunker;
 import org.openbw.tsbw.unit.CommandCenter;
+import org.openbw.tsbw.unit.Dropship;
+import org.openbw.tsbw.unit.EngineeringBay;
+import org.openbw.tsbw.unit.Factory;
+import org.openbw.tsbw.unit.Firebat;
 import org.openbw.tsbw.unit.Geyser;
+import org.openbw.tsbw.unit.Ghost;
+import org.openbw.tsbw.unit.Goliath;
 import org.openbw.tsbw.unit.Hatchery;
+import org.openbw.tsbw.unit.Marine;
+import org.openbw.tsbw.unit.Medic;
 import org.openbw.tsbw.unit.MineralPatch;
+import org.openbw.tsbw.unit.MissileTurret;
 import org.openbw.tsbw.unit.MobileUnit;
 import org.openbw.tsbw.unit.Nexus;
 import org.openbw.tsbw.unit.PhotonCannon;
 import org.openbw.tsbw.unit.Refinery;
+import org.openbw.tsbw.unit.ScienceFacility;
+import org.openbw.tsbw.unit.ScienceVessel;
+import org.openbw.tsbw.unit.SiegeTank;
+import org.openbw.tsbw.unit.Starport;
 import org.openbw.tsbw.unit.SunkenColony;
+import org.openbw.tsbw.unit.SupplyDepot;
 import org.openbw.tsbw.unit.UnitFactory;
+import org.openbw.tsbw.unit.Valkyrie;
+import org.openbw.tsbw.unit.Vulture;
 import org.openbw.tsbw.unit.Worker;
+import org.openbw.tsbw.unit.Wraith;
 
 import bwapi.BWEventListener;
 import bwapi.Game;
@@ -184,7 +204,7 @@ public class Main implements BWEventListener {
 					scoutingStrategy.run(frameCount);
 				}
 				
-				buildingPlanner.run(player1.minerals(), frameCount);
+				buildingPlanner.run(player1.minerals(), player1.gas(), frameCount);
 				
 				// some simple interaction: enable global map drawing or change logging output
 				if (interactionHandler.getKeyState(Key.K_CONTROL) && interactionHandler.getKeyState(Key.K_T)) {
@@ -195,9 +215,10 @@ public class Main implements BWEventListener {
 			}
 			
 			int availableMinerals = player1.minerals() - buildingPlanner.getQueuedMinerals();
+			int availableGas = player1.gas() - buildingPlanner.getQueuedGas();
 			int availableSupply = player1.supplyTotal() - player1.supplyUsed();
 			
-			gameStrategy.run(frameCount, availableMinerals, availableSupply);
+			gameStrategy.run(frameCount, availableMinerals, availableGas, availableSupply);
 			
 			drawGameInfo();
 			
@@ -270,27 +291,87 @@ public class Main implements BWEventListener {
 				} else if (type.isRefinery()) {
 					
 					inventory.register(UnitFactory.create(Refinery.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Academy)) {
+					
+					inventory.register(UnitFactory.create(Academy.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Armory)) {
+					
+					inventory.register(UnitFactory.create(Armory.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Barracks)) {
+					
+					inventory.register(UnitFactory.create(Barracks.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Battlecruiser)) {
+					
+					inventory.register(UnitFactory.create(Battlecruiser.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
 				} else if (type.equals(UnitType.Terran_Bunker)) {
 					
 					inventory.register(UnitFactory.create(Bunker.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Protoss_Photon_Cannon)) {
-					
-					inventory.register(UnitFactory.create(PhotonCannon.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Zerg_Sunken_Colony)) {
-					
-					inventory.register(UnitFactory.create(SunkenColony.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Barracks)) {
-								
-					inventory.register(UnitFactory.create(Barracks.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
 				} else if (type.equals(UnitType.Terran_Command_Center)) {
 					
 					inventory.register(UnitFactory.create(CommandCenter.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Dropship)) {
+					
+					inventory.register(UnitFactory.create(Dropship.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Engineering_Bay)) {
+					
+					inventory.register(UnitFactory.create(EngineeringBay.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Factory)) {
+					
+					inventory.register(UnitFactory.create(Factory.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Firebat)) {
+					
+					inventory.register(UnitFactory.create(Firebat.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Ghost)) {
+					
+					inventory.register(UnitFactory.create(Ghost.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Goliath)) {
+					
+					inventory.register(UnitFactory.create(Goliath.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Marine)) {
+					
+					inventory.register(UnitFactory.create(Marine.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Medic)) {
+					
+					inventory.register(UnitFactory.create(Medic.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Missile_Turret)) {
+					
+					inventory.register(UnitFactory.create(MissileTurret.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Science_Facility)) {
+					
+					inventory.register(UnitFactory.create(ScienceFacility.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Science_Vessel)) {
+					
+					inventory.register(UnitFactory.create(ScienceVessel.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Siege_Tank_Tank_Mode) || type.equals(UnitType.Terran_Siege_Tank_Siege_Mode)) {
+					
+					inventory.register(UnitFactory.create(SiegeTank.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Starport)) {
+					
+					inventory.register(UnitFactory.create(Starport.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Supply_Depot)) {
+					
+					inventory.register(UnitFactory.create(SupplyDepot.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Valkyrie)) {
+					
+					inventory.register(UnitFactory.create(Valkyrie.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Vulture)) {
+					
+					inventory.register(UnitFactory.create(Vulture.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Terran_Wraith)) {
+					
+					inventory.register(UnitFactory.create(Wraith.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
 				} else if (type.equals(UnitType.Zerg_Hatchery)) {
 					
 					inventory.register(UnitFactory.create(Hatchery.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
 				} else if (type.equals(UnitType.Protoss_Nexus)) {
 					
 					inventory.register(UnitFactory.create(Nexus.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Protoss_Photon_Cannon)) {
+					
+					inventory.register(UnitFactory.create(PhotonCannon.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
+				} else if (type.equals(UnitType.Zerg_Sunken_Colony)) {
+					
+					inventory.register(UnitFactory.create(SunkenColony.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
 				} else if (type.isBuilding()) {
 					
 					inventory.register(UnitFactory.create(Building.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
@@ -395,7 +476,10 @@ public class Main implements BWEventListener {
 	
 	@Override
 	public void onUnitMorph(Unit unit) {
-		// do nothing
+		
+		if (unit.getType().isRefinery()) {
+			onUnitComplete(unit);
+		}
 		
 	}
 	@Override

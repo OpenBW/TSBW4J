@@ -2,17 +2,16 @@ package org.openbw.tsbw.unit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import org.openbw.tsbw.Constants;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.MapDrawer;
+import org.openbw.tsbw.Constants;
+import org.openbw.tsbw.MyMap;
 
 import bwapi.Color;
 import bwapi.Position;
 import bwapi.Region;
 import bwapi.TilePosition;
 import bwapi.UnitType;
-import bwta.BWTA;
 
 public class MineralPatch extends Unit {
 
@@ -114,8 +113,7 @@ public class MineralPatch extends Unit {
 			
 		} else {
 			
-			//groundDistance = (int)BWTA.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
-			groundDistance = this.getDistance(commandCenter); // TODO this is just a temporary fix to avoid BWTA references
+			groundDistance = (int)MyMap.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
 			
 			roundTripTime = groundDistance * 2 / UnitType.Terran_SCV.topSpeed() + Constants.MINING_TIME;
 		}

@@ -19,6 +19,20 @@ public class MyMap {
 	
 	}
 	
+	public static int getGroundDistance(TilePosition pos1, TilePosition pos2) {
+		
+		// "no BWTA" hack
+		return (int)pos1.getDistance(pos2);
+		// return BWTA.getGroundDistance2(pos1, pos2);
+	}
+	
+	public static boolean isConnected(TilePosition pos1, TilePosition pos2) {
+		
+		// "no BWTA" hack
+		return true;
+		// return BWTA.isConnected(pos1, pos2);
+	}
+	
 	public static void sortChokePoints(TilePosition startLocation) {
 		
 		chokePoints.clear();

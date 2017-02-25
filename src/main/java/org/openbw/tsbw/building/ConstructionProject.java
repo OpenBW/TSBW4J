@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import org.openbw.tsbw.Constants;
+import org.openbw.tsbw.MyMap;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.analysis.PPF2;
@@ -17,7 +18,6 @@ import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.InteractionHandler;
 
 import bwapi.TilePosition;
-import bwta.BWTA;
 
 public class ConstructionProject {
 
@@ -99,7 +99,7 @@ public class ConstructionProject {
 		if (hasConstructionSite()) {
 		
 			for (Worker worker : workerSquad) {
-				double currentDistance = BWTA.getGroundDistance(worker.getTilePosition(), constructionSite);
+				double currentDistance = MyMap.getGroundDistance(worker.getTilePosition(), constructionSite);
 				if (currentDistance < distance) {
 					distance = currentDistance;
 					builder = worker;
@@ -138,7 +138,7 @@ public class ConstructionProject {
 	 */
 	/* default */ int estimateMineralsMinedDuringTravel(int remainingMiningWorkerCount) {
 		
-		double distance = BWTA.getGroundDistance(this.assignedWorker.getTilePosition(), this.constructionSite);
+		double distance = MyMap.getGroundDistance(this.assignedWorker.getTilePosition(), this.constructionSite);
 		double travelTimetoConstructionSite = distance / Constants.AVERAGE_SCV_SPEED;
 		int estimatedMiningDuringTravel = (int)PPF2.calculateEstimatedMining((int)travelTimetoConstructionSite, remainingMiningWorkerCount);
 		

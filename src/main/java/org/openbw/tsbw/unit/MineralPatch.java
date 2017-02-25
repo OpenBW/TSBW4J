@@ -114,7 +114,9 @@ public class MineralPatch extends Unit {
 			
 		} else {
 			
-			groundDistance = (int)BWTA.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
+			//groundDistance = (int)BWTA.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
+			groundDistance = this.getDistance(commandCenter); // TODO this is just a temporary fix to avoid BWTA references
+			
 			roundTripTime = groundDistance * 2 / UnitType.Terran_SCV.topSpeed() + Constants.MINING_TIME;
 		}
 		

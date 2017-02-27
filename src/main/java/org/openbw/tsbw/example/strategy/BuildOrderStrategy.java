@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
 import org.openbw.bwapi.MapDrawer;
+import org.openbw.bwapi.Player;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.building.BuildingPlanner;
@@ -32,6 +33,8 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 	
 	private List<BoAction> buildOrder;
 	private int boPointer;
+	
+	private UnitInventory myUnitInventory;
 	
 	private GroupListener<Worker> workerListener = new GroupListener<Worker>() {
 
@@ -83,12 +86,13 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 	};
 	
 	/* default */ BuildOrderStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
-			UnitInventory myUnitInventory, UnitInventory enemyUnitInventory, BuildingPlanner buildingPlanner,
+			Player self, Player enemy, BuildingPlanner buildingPlanner,
 			DamageEvaluator damageEvaluator) {
 	
-		super(mapDrawer, bwMap, scoutingStrategy, myUnitInventory, enemyUnitInventory, buildingPlanner, damageEvaluator);
+		super(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator);
 		
 		this.buildOrder = new ArrayList<BoAction>();
+		this.myUnitInventory = self.getUnitInventory();
 	}
 	
 	@Override
@@ -99,7 +103,7 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 	}
 	
 	@Override
-	public void start(int startMinerals) {
+	public void start(int startMinerals, int startGas) {
 		
 		this.myUnitInventory.getAllWorkers().addListener(workerListener);
 		this.myUnitInventory.getBuildings().addListener(buildingsListener);

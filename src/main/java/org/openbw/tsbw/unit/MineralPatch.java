@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.MapDrawer;
 import org.openbw.tsbw.Constants;
+import org.openbw.tsbw.MyMap;
 
 import bwapi.Color;
 import bwapi.Position;
@@ -93,19 +94,28 @@ public class MineralPatch extends Unit {
 		if (wipeScvCount) {
 			this.assignedScvs = 0;
 		}
-
+		Region commandCenterRegion = bwMap.getRegionAt(commandCenter.getPosition());
+		
 		double roundTripTime;
 		double groundDistance;
 		int dx = bwUnit.getPosition().getX() - commandCenter.getPosition().getX();
 		int dy = bwUnit.getPosition().getY() - commandCenter.getPosition().getY();
 		
-		groundDistance = this.getDistance(commandCenter);
-		
-		double accelerationDistance = 48.4128;
-		double turnPenalty = 20.0;
-		double timeAccelerating = 4 * accelerationDistance / UnitType.Terran_SCV.topSpeed();
-		double topSpeedTime = (groundDistance * 2 - accelerationDistance * 2) / UnitType.Terran_SCV.topSpeed();
-		roundTripTime = topSpeedTime + timeAccelerating + Constants.MINING_TIME + turnPenalty;
+		if (myRegion != null && myRegion.equals(commandCenterRegion)) {
+			
+			groundDistance = this.getDistance(commandCenter);
+			
+			double accelerationDistance = 48.4128;
+			double turnPenalty = 20.0;
+			double timeAccelerating = 4 * accelerationDistance / UnitType.Terran_SCV.topSpeed();
+			double topSpeedTime = (groundDistance * 2 - accelerationDistance * 2) / UnitType.Terran_SCV.topSpeed();
+			roundTripTime = topSpeedTime + timeAccelerating + Constants.MINING_TIME + turnPenalty;
+			
+		} else {
+			
+			groundDistance = (int)MyMap.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
+			roundTripTime = groundDistance * 2 / UnitType.Terran_SCV.topSpeed() + Constants.MINING_TIME;
+		}
 		
 		if (groundDistance > 0 && roundTripTime < this.roundTripTimeToClosestCC) {
 			

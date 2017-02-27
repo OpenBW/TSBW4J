@@ -5,6 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
 import org.openbw.bwapi.MapDrawer;
+import org.openbw.bwapi.Player;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.UnitInventory;
@@ -38,6 +39,9 @@ public class DummyStrategy extends AbstractGameStrategy {
 
 	private static final Logger logger = LogManager.getLogger();
 	
+	protected UnitInventory myInventory;
+	protected UnitInventory enemyInventory;
+	
 	/**
 	 * Listens to events affecting my workers.
 	 */
@@ -49,7 +53,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 			logger.info("worker {} was added.", worker);
 			
 			// let's add every new worker to the mining squad by default
-			myUnitInventory.getMiningWorkers().add(worker);
+			myInventory.getMiningWorkers().add(worker);
 		}
 
 		@Override
@@ -124,7 +128,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 			logger.info("enemy unit {} was added.", unit);
 			
 			// if we find an enemy, let's attack it with all our forces
-			myUnitInventory.getArmyUnits().stream().forEach(u -> u.attack(unit.getPosition()));
+			myInventory.getArmyUnits().stream().forEach(u -> u.attack(unit.getPosition()));
 		}
 
 		@Override
@@ -151,7 +155,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 			logger.info("enemy building {} was added.", building);
 			
 			// if we find an enemy building, let's move out to attack there with all our forces
-			myUnitInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
+			myInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
 		}
 
 		@Override
@@ -160,8 +164,8 @@ public class DummyStrategy extends AbstractGameStrategy {
 			logger.info("enemy building {} was removed.", building);
 			
 			// if an enemy building was killed, let's go and attack the next one (if there is any)
-			if (!enemyUnitInventory.getBuildings().isEmpty()) {
-				myUnitInventory.getArmyUnits().stream().forEach(u -> u.attack(enemyUnitInventory.getBuildings().first().getPosition()));
+			if (!enemyInventory.getBuildings().isEmpty()) {
+				myInventory.getArmyUnits().stream().forEach(u -> u.attack(enemyInventory.getBuildings().first().getPosition()));
 			}
 		}
 
@@ -173,10 +177,13 @@ public class DummyStrategy extends AbstractGameStrategy {
 	};
 	
 	public DummyStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
-			UnitInventory myUnitInventory, UnitInventory enemyUnitInventory, BuildingPlanner buildingPlanner,
+			Player self, Player enemy, BuildingPlanner buildingPlanner,
 			DamageEvaluator damageEvaluator) {
 	
-		super(mapDrawer, bwMap, scoutingStrategy, myUnitInventory, enemyUnitInventory, buildingPlanner, damageEvaluator);
+		super(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator);
+		
+		this.myInventory = self.getUnitInventory();
+		this.enemyInventory = enemy.getUnitInventory();
 	}
 	
 	@Override
@@ -186,16 +193,16 @@ public class DummyStrategy extends AbstractGameStrategy {
 	}
 
 	@Override
-	public void start(int startMinerals) {
+	public void start(int startMinerals, int startGas) {
 		
 		// listeners have to be added after the game has started.
 		// feel free to add or remove listeners as needed. Any Group can be listened to.
 		
-		super.myUnitInventory.getBuildings().addListener(buildingsListener);
-		super.myUnitInventory.getArmyUnits().addListener(armyListener);
-		super.myUnitInventory.getAllWorkers().addListener(workerListener);
-		super.enemyUnitInventory.getBuildings().addListener(enemyBuildingsListener);
-		super.enemyUnitInventory.getArmyUnits().addListener(enemyArmyListener);
+		this.myInventory.getBuildings().addListener(buildingsListener);
+		this.myInventory.getArmyUnits().addListener(armyListener);
+		this.myInventory.getAllWorkers().addListener(workerListener);
+		this.enemyInventory.getBuildings().addListener(enemyBuildingsListener);
+		this.enemyInventory.getArmyUnits().addListener(enemyArmyListener);
 	}
 
 	@Override
@@ -204,17 +211,17 @@ public class DummyStrategy extends AbstractGameStrategy {
 		// at frame 3000 send out a single scout to explore the map.
 		// we do this by simply moving the first worker we find from the mining squad to the scouts squad.
 		if (frame == 3000) {
-			myUnitInventory.getMiningWorkers().move(myUnitInventory.getMiningWorkers().first(), myUnitInventory.getScouts());
+			myInventory.getMiningWorkers().move(myInventory.getMiningWorkers().first(), myInventory.getScouts());
 		}
 				
 		// train workers until we have 16 workers.
 		// we keep count of available minerals while we decide on how to spend them.
-		if (this.myUnitInventory.getAllWorkers().size() < 16 && availableMinerals >= 50) {
+		if (this.myInventory.getAllWorkers().size() < 16 && availableMinerals >= 50) {
 			availableMinerals -= trainWorker();
 		}
 		
 		// as long as we have extra minerals available, spend it on marines
-		for (Barracks barracks : myUnitInventory.getBarracks()) {
+		for (Barracks barracks : myInventory.getBarracks()) {
 			if (!barracks.isTraining() && availableMinerals >= 50) {
 				barracks.trainMarine();
 				availableMinerals -= 50;
@@ -223,7 +230,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 				
 		// build supply depots as required: if available supply is less than some threshold queue up a supply depot to be built.
 		// in this case, we make the threshold depend on the number of command centers and barracks we have.
-		int threshold = myUnitInventory.getCommandCenters().size() * 4 + myUnitInventory.getBarracks().size() * 4;
+		int threshold = myInventory.getCommandCenters().size() * 4 + myInventory.getBarracks().size() * 4;
 		if (availableSupply + buildingPlanner.getCount(SupplyDepot.getInstance(bwMap)) * UnitType.Terran_Supply_Depot.supplyProvided() <= threshold) {
 
 			buildingPlanner.queue(SupplyDepot.getInstance(bwMap));
@@ -243,7 +250,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 	 */
 	private int trainWorker() {
 		
-		Group<CommandCenter> commandCenters = this.myUnitInventory.getCommandCenters();
+		Group<CommandCenter> commandCenters = this.myInventory.getCommandCenters();
 		if (!commandCenters.isEmpty()) {
 			CommandCenter commandCenter = commandCenters.first();
 			

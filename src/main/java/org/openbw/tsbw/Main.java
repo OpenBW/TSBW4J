@@ -11,6 +11,7 @@ import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
 import org.openbw.bwapi.InteractionHandler;
 import org.openbw.bwapi.MapDrawer;
+import org.openbw.bwapi.Player;
 import org.openbw.tsbw.building.BuildingPlanner;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.MiningFactory;
@@ -57,7 +58,6 @@ import bwapi.BWEventListener;
 import bwapi.Game;
 import bwapi.Key;
 import bwapi.Mirror;
-import bwapi.Player;
 import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
@@ -99,6 +99,9 @@ public class Main implements BWEventListener {
 		this.unitInventory1 = new UnitInventory();
 		this.unitInventory2 = new UnitInventory();
 		
+		this.player1 = new Player(this.unitInventory1);
+		this.player2 = new Player(this.unitInventory2);
+		
 		this.bwMap = new BWMap();
 		this.damageEvaluator = new DamageEvaluator();
 		this.interactionHandler = new InteractionHandler();
@@ -137,11 +140,11 @@ public class Main implements BWEventListener {
 			this.gameStarted = false;
 			Game game = mirror.getGame();
 			
-			this.player1 = game.self();
-			this.player2 = game.enemy();
+			this.player1.initialize(game.self());
+			this.player2.initialize(game.enemy());
 			
-			this.gameStrategy = strategyFactory.getStrategy(mapDrawer, bwMap, scoutingStrategy, unitInventory1, 
-					unitInventory2, buildingPlanner, damageEvaluator);
+			this.gameStrategy = strategyFactory.getStrategy(mapDrawer, bwMap, scoutingStrategy, player1, 
+					player2, buildingPlanner, damageEvaluator);
 			
 			this.mapDrawer.initialize(game);
 			this.damageEvaluator.initialize(game);
@@ -260,12 +263,12 @@ public class Main implements BWEventListener {
 		
 	}
 	@Override
-	public void onReceiveText(Player player, String text) {
+	public void onReceiveText(bwapi.Player player, String text) {
 		// do nothing
 		
 	}
 	@Override
-	public void onPlayerLeft(Player player) {
+	public void onPlayerLeft(bwapi.Player player) {
 		// do nothing
 	}
 	
@@ -507,7 +510,7 @@ public class Main implements BWEventListener {
 				
 				unitInventory1.getMiningWorkers().addAll(unitInventory1.getAllWorkers());
 				miningStrategy.initialize(unitInventory1.getCommandCenters(), unitInventory1.getMiningWorkers(), unitInventory1.getMineralPatches());
-				gameStrategy.start(player1.minerals());
+				gameStrategy.start(player1.minerals(), player1.gas());
 				gameStarted = true;
 			}
 		} catch (Exception e) {
@@ -517,7 +520,7 @@ public class Main implements BWEventListener {
 	}
 	
 	@Override
-	public void onPlayerDropped(Player player) {
+	public void onPlayerDropped(bwapi.Player player) {
 		// do nothing
 	}
 }

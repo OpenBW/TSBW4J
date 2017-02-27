@@ -3,7 +3,7 @@ package org.openbw.tsbw.strategy;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
 import org.openbw.bwapi.MapDrawer;
-import org.openbw.tsbw.UnitInventory;
+import org.openbw.bwapi.Player;
 import org.openbw.tsbw.building.BuildingPlanner;
 
 public abstract class AbstractGameStrategy {
@@ -11,20 +11,20 @@ public abstract class AbstractGameStrategy {
 	protected MapDrawer mapDrawer;
 	protected BWMap bwMap;
 	protected ScoutingStrategy scoutingStrategy;
-	protected UnitInventory myUnitInventory;
-	protected UnitInventory enemyUnitInventory;
+	protected Player self;
+	protected Player enemy;
 	protected BuildingPlanner buildingPlanner;
 	protected DamageEvaluator damageEvaluator;
 	
 	public AbstractGameStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
-			UnitInventory myUnitInventory, UnitInventory enemyUnitInventory, BuildingPlanner buildingPlanner,
+			Player player1, Player player2, BuildingPlanner buildingPlanner,
 			DamageEvaluator damageEvaluator) {
 		
 		this.mapDrawer = mapDrawer;
 		this.bwMap = bwMap;
 		this.scoutingStrategy = scoutingStrategy;
-		this.myUnitInventory = myUnitInventory;
-		this.enemyUnitInventory = enemyUnitInventory;
+		this.self = player1;
+		this.enemy = player2;
 		this.buildingPlanner = buildingPlanner;
 		this.damageEvaluator = damageEvaluator;
 	}
@@ -37,8 +37,9 @@ public abstract class AbstractGameStrategy {
 	/**
 	 * Is called after a new game started (i.e., all initial units have been discovered and completed.
 	 * @param startMinerals minerals at the start of the game
+	 * @param startGas gas at the start of the game
 	 */
-	public abstract void start(int startMinerals);
+	public abstract void start(int startMinerals, int startGas);
 	
 	/**
 	 * Is called at every frame in the game.

@@ -3,7 +3,7 @@ package org.openbw.tsbw.example.strategy;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
 import org.openbw.bwapi.MapDrawer;
-import org.openbw.tsbw.UnitInventory;
+import org.openbw.bwapi.Player;
 import org.openbw.tsbw.building.BuildingPlanner;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
@@ -22,17 +22,15 @@ public class DefaultStrategyFactory extends StrategyFactory {
 	
 	@Override
 	public AbstractGameStrategy getStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
-			UnitInventory myUnitInventory, UnitInventory enemyUnitInventory, BuildingPlanner buildingPlanner,
+			Player self, Player enemy, BuildingPlanner buildingPlanner,
 			DamageEvaluator damageEvaluator) {
 		
 		if (type == Type.BUILD_ORDER) {
 			
-			return new BuildOrderStrategy(mapDrawer, bwMap, scoutingStrategy, myUnitInventory,
-					enemyUnitInventory, buildingPlanner, damageEvaluator);
+			return new BuildOrderStrategy(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator);
 		} else {
 			
-			return new DummyStrategy(mapDrawer, bwMap, scoutingStrategy, myUnitInventory,
-					enemyUnitInventory, buildingPlanner, damageEvaluator);
+			return new DummyStrategy(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator);
 		}
 	}
 

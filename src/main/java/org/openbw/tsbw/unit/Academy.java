@@ -8,24 +8,20 @@ import bwapi.Unit;
 import bwapi.UnitType;
 import bwapi.UpgradeType;
 
-public class Academy extends Building implements Construction, Mechanical {
+public class Academy extends Building implements Mechanical {
 
-	private static Academy constructionInstance = null;
-	
-	Academy(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private Academy(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Academy);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new Academy(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Academy, bwMap);
 		}
 		return constructionInstance;
+	}
+
+	Academy(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 	
 	public boolean researchStimPacks() {

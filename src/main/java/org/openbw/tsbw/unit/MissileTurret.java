@@ -5,24 +5,20 @@ import org.openbw.bwapi.DamageEvaluator;
 
 import bwapi.UnitType;
 
-public class MissileTurret extends Building implements Construction, Detector, Mechanical {
+public class MissileTurret extends Building implements Detector, Mechanical {
 
-	private static MissileTurret constructionInstance = null;
-	
-	MissileTurret(DamageEvaluator damageEvaluator, BWMap bwMap, bwapi.Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private MissileTurret(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Missile_Turret);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new MissileTurret(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Missile_Turret, bwMap);
 		}
 		return constructionInstance;
+	}	
+	
+	MissileTurret(DamageEvaluator damageEvaluator, BWMap bwMap, bwapi.Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 	
 	public boolean attack(Unit target) {

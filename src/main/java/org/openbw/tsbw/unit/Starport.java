@@ -7,24 +7,20 @@ import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Starport extends Building implements Construction, Mechanical {
+public class Starport extends Building implements Mechanical {
 
-	private static Starport constructionInstance = null;
-	
-	Starport(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private Starport(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Starport);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new Starport(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Starport, bwMap);
 		}
 		return constructionInstance;
+	}	
+	
+	Starport(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 	
 	public boolean isTraining() {

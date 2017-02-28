@@ -13,43 +13,39 @@ import bwapi.TilePosition;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Refinery extends Building implements Construction, Mechanical {
+public class Refinery extends Building implements Mechanical {
 
 	private static Construction constructionInstance = null;
-	
-	Refinery(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-
-	private Refinery(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Refinery);
-	}
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new Refinery(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Refinery, bwMap) {
+				@Override
+				public TilePosition getBuildTile(Worker builder, TilePosition aroundHere, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
+					
+					Position around = aroundHere.toPosition();
+					
+					Group<Geyser> geysers = unitInventory.getGeysers();
+					if (geysers.isEmpty()) {
+						return null;
+					} else {
+						return geysers.stream().min((u1, u2) -> Integer.compare(u1.getDistance(around), u2.getDistance(around))).get().getTilePosition();
+					}
+				}
+				
+				@Override
+				public TilePosition getBuildTile(Worker builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
+					
+					TilePosition aroundHere = builder == null ? unitInventory.getMain().getTilePosition() : builder.getTilePosition();
+					return getBuildTile(builder, aroundHere, unitInventory, projects);
+				}
+			};
 		}
 		return constructionInstance;
-	}
+	}	
 	
-	@Override
-	public TilePosition getBuildTile(Worker builder, TilePosition aroundHere, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
-		
-		Position around = aroundHere.toPosition();
-		
-		Group<Geyser> geysers = unitInventory.getGeysers();
-		if (geysers.isEmpty()) {
-			return null;
-		} else {
-			return geysers.stream().min((u1, u2) -> Integer.compare(u1.getDistance(around), u2.getDistance(around))).get().getTilePosition();
-		}
-	}
-	
-	@Override
-	public TilePosition getBuildTile(Worker builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
-		
-		TilePosition aroundHere = builder == null ? unitInventory.getMain().getTilePosition() : builder.getTilePosition();
-		return getBuildTile(builder, aroundHere, unitInventory, projects);
+	Refinery(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 }

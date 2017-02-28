@@ -96,6 +96,14 @@ public class PlayerUnit extends Unit {
 		return unitType.isFlyer();
 	}
 	
+	public int tileWidth() {
+		return unitType.tileWidth();
+	}
+	
+	public int tileHeight() {
+		return unitType.tileHeight();
+	}
+	
 	public int getDamageTo(PlayerUnit to) {
 		
 		return damageEvaluator.getDamageTo(to.bwUnit.getType(), this.unitType, to.bwUnit.getPlayer(), this.bwUnit.getPlayer());

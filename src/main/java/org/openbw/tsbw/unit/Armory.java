@@ -7,24 +7,20 @@ import bwapi.Unit;
 import bwapi.UnitType;
 import bwapi.UpgradeType;
 
-public class Armory extends Building implements Construction, Mechanical {
+public class Armory extends Building implements Mechanical {
 
-	private static Armory constructionInstance = null;
-	
-	Armory(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private Armory(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Armory);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new Armory(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Armory, bwMap);
 		}
 		return constructionInstance;
+	}
+	
+	Armory(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 	
 	public boolean upgradeVehiclePlating() {

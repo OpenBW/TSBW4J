@@ -72,6 +72,13 @@ public final class InteractionHandler {
 	}
 	
 	/**
+	 * {@link bwapi.Game#isLatComEnabled()}
+	 */
+	public boolean isLatComEnabled() {
+		return game.isLatComEnabled();
+	}
+	
+	/**
 	 * {@link bwapi.Game#getRemainingLatencyFrames()}
 	 */
 	public int getRemainingLatencyFrames() {

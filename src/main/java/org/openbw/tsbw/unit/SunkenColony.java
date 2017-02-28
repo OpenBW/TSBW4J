@@ -6,23 +6,19 @@ import org.openbw.bwapi.DamageEvaluator;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class SunkenColony extends Building implements Construction {
+public class SunkenColony extends Building {
 
-	private static SunkenColony constructionInstance = null;
-	
-	SunkenColony(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private SunkenColony(BWMap bwMap) {
-		super(bwMap, UnitType.Zerg_Sunken_Colony);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new SunkenColony(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Zerg_Sunken_Colony, bwMap);
 		}
 		return constructionInstance;
+	}	
+	
+	SunkenColony(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 }

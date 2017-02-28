@@ -7,24 +7,20 @@ import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Barracks extends Building implements Construction, Mechanical {
+public class Barracks extends Building implements Mechanical {
 
-	private static Barracks constructionInstance = null;
-	
-	Barracks(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private Barracks(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Barracks);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new Barracks(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Barracks, bwMap);
 		}
 		return constructionInstance;
+	}
+	
+	Barracks(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 	
 	public boolean isTraining() {

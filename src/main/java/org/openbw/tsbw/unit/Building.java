@@ -1,19 +1,13 @@
 package org.openbw.tsbw.unit;
 
-import java.util.Queue;
-
-import org.openbw.tsbw.Squad;
-import org.openbw.tsbw.UnitInventory;
-import org.openbw.tsbw.building.ConstructionProject;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
+import org.openbw.tsbw.Squad;
 
 import bwapi.Position;
-import bwapi.Region;
 import bwapi.TilePosition;
-import bwapi.UnitType;
 
-public class Building extends PlayerUnit implements Construction {
+public class Building extends PlayerUnit {
 
 	protected int probableConstructionStart;
 	
@@ -22,12 +16,6 @@ public class Building extends PlayerUnit implements Construction {
 		this.probableConstructionStart = calculateProbableConstructionStart(bwUnit, timeSpotted);
 	}
 
-	/* default */ Building(BWMap bwMap, UnitType unitType) {
-		super();
-		super.bwMap = bwMap;
-		super.unitType = unitType;
-	}
-	
 	public Worker getBuildUnit(Squad<Worker> workerSquad) {
 
 		bwapi.Unit buildUnit = bwUnit.getBuildUnit();
@@ -35,59 +23,6 @@ public class Building extends PlayerUnit implements Construction {
 			return workerSquad.getValue(buildUnit.getID());
 		}
 		return null;
-	}
-
-	protected boolean collidesWithConstruction(TilePosition position, Queue<ConstructionProject> projects) {
-		
-		for (ConstructionProject project : projects) {
-			
-			TilePosition site = project.getConstructionSite();
-			Construction construction = project.getConstruction();
-			
-			if (site != null && construction != null) {
-				if (site.getX() + construction.tileWidth() > position.getX() &&  site.getX() < position.getX() + construction.tileWidth()
-						&& site.getY() + construction.tileHeight() > position.getY() && site.getY() < position.getY() + construction.tileHeight()) {
-					
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
-	@Override
-	public TilePosition getBuildTile(Worker builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
-		
-		Region region;
-		if (unitInventory.getMain() == null) {
-			region = bwMap.getRegionAt(unitInventory.getAvailableWorkers().first().getPosition());
-		} else {
-			region = bwMap.getRegionAt(unitInventory.getMain().getPosition());
-		}
-		TilePosition position = region.getCenter().toTilePosition();
-		
-		return getBuildTile(builder, position, unitInventory, projects);
-	}
-	
-	@Override
-	public TilePosition getBuildTile(Worker builder, TilePosition aroundHere, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
-		
-		TilePosition nextPosition = aroundHere;
-		
-		for (int i = 0; !bwMap.canBuildHere(nextPosition, this.unitType, true); i++) {
-			for (int j = 1; j <= i; j++) {
-				
-				int x = i/2 * ((i%2 * 2) - 1);
-				int y = j/2 * ((j%2 * 2) - 1);
-				nextPosition = new TilePosition(aroundHere.getX() + x, aroundHere.getY() + y);
-				if (bwMap.canBuildHere(nextPosition, this.unitType, true) && !collidesWithConstruction(nextPosition, projects)) {
-					
-					return nextPosition;
-				}
-			}
-		}
-		
-		return nextPosition;
 	}
 
 	public int buildTime() {
@@ -113,21 +48,6 @@ public class Building extends PlayerUnit implements Construction {
 		return probableConstructionStart;
 	}
 
-	@Override
-	public boolean build(Worker worker, TilePosition constructionSite) {
-		return worker.build(this.unitType, constructionSite);
-	}
-
-	@Override
-	public int tileHeight() {
-		return super.unitType.tileHeight();
-	}
-
-	@Override
-	public int tileWidth() {
-		return super.unitType.tileWidth();
-	}
-	
 	public int getDistance(TilePosition position) {
 		
 		// compute x distance

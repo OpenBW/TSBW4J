@@ -7,24 +7,20 @@ import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Factory extends Building implements Construction, Mechanical {
+public class Factory extends Building implements Mechanical {
 
-	private static Factory constructionInstance = null;
-	
-	Factory(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private Factory(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Factory);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new Factory(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Factory, bwMap);
 		}
 		return constructionInstance;
+	}
+	
+	Factory(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 	
 	public boolean isTraining() {

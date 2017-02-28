@@ -88,9 +88,9 @@ public abstract class Bot {
 	protected StrategyFactory strategyFactory;
 	protected AbstractGameStrategy gameStrategy;
 	
-	private boolean scoutingEnabled = true;
-	private boolean cleanLogging = false;
-	private boolean gameStarted = false;
+	protected boolean scoutingEnabled = true;
+	protected boolean cleanLogging = false;
+	protected boolean gameStarted = false;
 	
 	public final void run() {
 		
@@ -151,7 +151,6 @@ public abstract class Bot {
 		this.miningStrategy = this.miningFactory.getStrategy(mapDrawer, interactionHandler);
 		this.gameStrategy = strategyFactory.getStrategy(mapDrawer, bwMap, scoutingStrategy, player1, 
 				player2, buildingPlanner, damageEvaluator);
-		
 		
 		this.scoutingStrategy.initialize(unitInventory1.getScouts(), unitInventory1);
 		this.gameStrategy.initialize();

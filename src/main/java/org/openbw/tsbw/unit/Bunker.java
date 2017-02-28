@@ -6,24 +6,20 @@ import org.openbw.bwapi.DamageEvaluator;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Bunker extends Building implements Construction, Mechanical {
+public class Bunker extends Building implements Mechanical {
 
-	private static Bunker constructionInstance = null;
-	
-	Bunker(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
-		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
-	}
-	
-	private Bunker(BWMap bwMap) {
-		super(bwMap, UnitType.Terran_Bunker);
-	}
+	private static Construction constructionInstance = null;
 	
 	public static Construction getInstance(BWMap bwMap) {
 		
 		if (constructionInstance == null) {
-			constructionInstance = new Bunker(bwMap);
+			constructionInstance = new ConstructionProvider(UnitType.Terran_Bunker, bwMap);
 		}
 		return constructionInstance;
+	}
+	
+	Bunker(DamageEvaluator damageEvaluator, BWMap bwMap, Unit bwUnit, int timeSpotted) {
+		super(damageEvaluator, bwMap, bwUnit, timeSpotted);
 	}
 	
 	public boolean load(MobileUnit unit) {

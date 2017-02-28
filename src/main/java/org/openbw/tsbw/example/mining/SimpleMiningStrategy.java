@@ -67,7 +67,9 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		
 		logger.debug("added " + mineralPatches.size() + " mineral patches.");
 		
-		updatePatchDistances(true);
+		for (CommandCenter commandCenter : this.commandCenters) {
+			updatePatchDistances(commandCenter);
+		}
 		firstTimeSpread();
 	}
 
@@ -122,26 +124,15 @@ public class SimpleMiningStrategy implements MiningStrategy {
 	}
 
 	/**
-	 * Updates distances for all mineral patches and all command centers.
-	 * @param wipeScvCount
-	 */
-	private void updatePatchDistances(boolean wipeScvCount) {
-		
-		for (CommandCenter commandCenter : this.commandCenters) {
-			updatePatchDistances(commandCenter, wipeScvCount);
-		}
-	}
-	
-	/**
 	 * For all mineral patches, check if the given command center shortens any distances. Then re-sort.
 	 * @param commandCenter
 	 * @param wipeScvCount
 	 */
-	private void updatePatchDistances(CommandCenter commandCenter, boolean wipeScvCount) {
+	private void updatePatchDistances(CommandCenter commandCenter) {
 		
 		TreeSet<MineralPatch> patchesToReSort = new TreeSet<MineralPatch>();
 		for(MineralPatch patch : mineralPatches) {
-			patch.updateDistance(commandCenter, wipeScvCount);
+			patch.updateDistance(commandCenter, true);
 			patchesToReSort.add(patch);
 		}
 		mineralPatches.clear();

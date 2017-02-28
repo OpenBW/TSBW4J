@@ -1,6 +1,6 @@
 package org.openbw.tsbw.example;
 
-import org.openbw.tsbw.Main;
+import org.openbw.tsbw.Bot;
 import org.openbw.tsbw.example.mining.DefaultMiningFactory;
 import org.openbw.tsbw.example.scouting.DefaultScoutingFactory;
 import org.openbw.tsbw.example.strategy.DefaultStrategyFactory;
@@ -9,7 +9,7 @@ import org.openbw.tsbw.strategy.MiningFactory;
 import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.StrategyFactory;
 
-public class ExampleBot extends Main {
+public class ExampleBot extends Bot {
 
 	public ExampleBot(MiningFactory miningFactory, ScoutingFactory scoutingFactory, StrategyFactory strategyFactory) {
 		super(miningFactory, scoutingFactory, strategyFactory);
@@ -38,10 +38,13 @@ public class ExampleBot extends Main {
 		
 		ExampleBot exampleBot = new ExampleBot(miningFactory, scoutingFactory, strategyFactory);
 		
-		// do not forget to initialize before running
-		exampleBot.initialize();
-		
 		// run the bot. It will search for a game lobby to join.
 		exampleBot.run();
+	}
+
+	@Override
+	public void onStart() {
+
+		interactionHandler.enablePlayerInteraction();
 	}
 }

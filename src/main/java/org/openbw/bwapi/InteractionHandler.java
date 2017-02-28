@@ -113,11 +113,12 @@ public final class InteractionHandler {
 		game.setLocalSpeed(speed);
 	}
 
-	/**
-	 * {@link bwapi.Game#enableFlag(int)}
-	 */
-	public void enableFlag(int flag) {
-		game.enableFlag(flag);
+	public void enablePlayerInteraction() {
+		game.enableFlag(1);
+	}
+	
+	public void enableCompleteMapInformation() {
+		game.enableFlag(0);
 	}
 
 }

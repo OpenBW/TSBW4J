@@ -2,6 +2,8 @@ package org.openbw.bwapi;
 
 import org.openbw.tsbw.UnitInventory;
 
+import bwapi.Race;
+
 public class Player {
 
 	private bwapi.Player player;
@@ -18,6 +20,10 @@ public class Player {
 	
 	public UnitInventory getUnitInventory() {
 		return this.unitInventory;
+	}
+	
+	public int getID() {
+		return player.getID();
 	}
 	
 	public int minerals() {
@@ -50,5 +56,13 @@ public class Player {
 	
 	public int supplyUsed() {
 		return player.supplyUsed();
+	}
+	
+	public Race getRace() {
+		return player.getRace();
+	}
+	
+	public String getName() {
+		return player.getName();
 	}
 }

@@ -54,7 +54,6 @@ import org.openbw.tsbw.unit.Vulture;
 import org.openbw.tsbw.unit.Worker;
 import org.openbw.tsbw.unit.Wraith;
 
-import bwapi.BWEventListener;
 import bwapi.Game;
 import bwapi.Key;
 import bwapi.Mirror;
@@ -62,39 +61,53 @@ import bwapi.Position;
 import bwapi.Unit;
 import bwapi.UnitType;
 
-public class Main implements BWEventListener {
+public abstract class Bot {
 
 	private static final Logger logger = LogManager.getLogger();
 
 	private Mirror mirror;
+	private BotEventListener eventListener;
 	
-	private Player player1;
-	private Player player2;
+	protected Player player1;
+	protected Player player2;
 	
-	private UnitInventory unitInventory1;
-	private UnitInventory unitInventory2;
-	private BWMap bwMap;
-	private MapDrawer mapDrawer;
-	private InteractionHandler interactionHandler;
-	private DamageEvaluator damageEvaluator;
-	private BuildingPlanner buildingPlanner;
+	protected UnitInventory unitInventory1;
+	protected UnitInventory unitInventory2;
+	protected BWMap bwMap;
+	protected MapDrawer mapDrawer;
+	protected InteractionHandler interactionHandler;
+	protected DamageEvaluator damageEvaluator;
+	protected BuildingPlanner buildingPlanner;
 	
-	private MiningFactory miningFactory;
-	private MiningStrategy miningStrategy;
+	protected MiningFactory miningFactory;
+	protected MiningStrategy miningStrategy;
 	
-	private ScoutingFactory scoutingFactory;
-	private ScoutingStrategy scoutingStrategy;
+	protected ScoutingFactory scoutingFactory;
+	protected ScoutingStrategy scoutingStrategy;
 	
-	private StrategyFactory strategyFactory;
-	private AbstractGameStrategy gameStrategy;
+	protected StrategyFactory strategyFactory;
+	protected AbstractGameStrategy gameStrategy;
 	
 	private boolean scoutingEnabled = true;
 	private boolean cleanLogging = false;
 	private boolean gameStarted = false;
 	
-	public void initialize() {
-
-		logger.debug("initializing...");
+	public final void run() {
+		
+		logger.trace("executing run().");
+		this.mirror = new Mirror();
+		this.mirror.getModule().setEventListener(this.eventListener);
+		logger.debug("starting game...");
+		this.mirror.startGame();
+	}
+	
+	public Bot(MiningFactory miningFactory, ScoutingFactory scoutingFactory, StrategyFactory strategyFactory) {
+		
+		this.miningFactory = miningFactory;
+		this.scoutingFactory = scoutingFactory;
+		this.strategyFactory = strategyFactory;
+		
+		this.eventListener = new BotEventListener(this);
 		
 		this.unitInventory1 = new UnitInventory();
 		this.unitInventory2 = new UnitInventory();
@@ -107,129 +120,99 @@ public class Main implements BWEventListener {
 		this.interactionHandler = new InteractionHandler();
 		this.mapDrawer = new MapDrawer(false);
 
-		this.scoutingStrategy = this.scoutingFactory.getStrategy(bwMap, mapDrawer);
 		this.buildingPlanner = new BuildingPlanner(unitInventory1, interactionHandler, bwMap);
-
-		this.miningStrategy = this.miningFactory.getStrategy(mapDrawer, interactionHandler);
-		logger.debug("initializing done.");
 	}
 	
-	public final void run() {
-		
-		logger.trace("executing run().");
-		this.mirror = new Mirror();
-		this.mirror.getModule().setEventListener(this);
-		logger.debug("starting game...");
-		this.mirror.startGame();
-	}
+	public abstract void onStart();
 	
-	public Main(MiningFactory miningFactory, ScoutingFactory scoutingFactory, StrategyFactory strategyFactory) {
-		
-		this.miningFactory = miningFactory;
-		this.scoutingFactory = scoutingFactory;
-		this.strategyFactory = strategyFactory;
-	}
-	
-	@Override
-	public void onStart() {
+	/* default */ final void internalOnStart() {
 		
 		logger.info("--- starting game - {}", new Date());
 		logger.debug("CWD: {}", System.getProperty("user.dir"));
 		
-		try {
-			this.gameStarted = false;
-			Game game = mirror.getGame();
-			
-			this.player1.initialize(game.self());
-			this.player2.initialize(game.enemy());
-			
-			this.gameStrategy = strategyFactory.getStrategy(mapDrawer, bwMap, scoutingStrategy, player1, 
-					player2, buildingPlanner, damageEvaluator);
-			
-			this.mapDrawer.initialize(game);
-			this.damageEvaluator.initialize(game);
-			this.bwMap.initialize(game);
-			this.interactionHandler.initialize(game);
-			logger.info("playing on {} (hash: {})", this.bwMap.mapFileName(), this.bwMap.mapHash());
-			
-			this.unitInventory1.initialize();
-			this.unitInventory2.initialize();
-			
-			this.buildingPlanner.initialize();
-			this.scoutingStrategy.initialize(unitInventory1.getScouts(), unitInventory1);
-			
-			this.gameStrategy.initialize();
-
-			logger.info("latency: {} ({}). latency compensation: {}", game.getLatency(), game.getLatencyFrames(), game.isLatComEnabled());
+		this.gameStarted = false;
+		Game game = mirror.getGame();
 		
-			for (bwapi.Unit mineralPatch : game.getStaticMinerals()) {
-				this.addToInventory(mineralPatch, unitInventory1, 0);
-				this.addToInventory(mineralPatch, unitInventory2, 0);
-			}
-			for (bwapi.Unit geyser : game.getStaticGeysers()) {
-				this.addToInventory(geyser, unitInventory1, 0);
-				this.addToInventory(geyser, unitInventory2, 0);
-			}
-			
-			game.setTextSize(bwapi.Text.Size.Enum.Default);
-			
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			throw e;
+		this.player1.initialize(game.self());
+		this.player2.initialize(game.enemy());
+		
+		this.mapDrawer.initialize(game);
+		this.damageEvaluator.initialize(game);
+		this.bwMap.initialize(game);
+		this.interactionHandler.initialize(game);
+		logger.info("playing on {} (hash: {})", this.bwMap.mapFileName(), this.bwMap.mapHash());
+		
+		this.unitInventory1.initialize();
+		this.unitInventory2.initialize();
+		
+		this.buildingPlanner.initialize();
+		
+		this.scoutingStrategy = this.scoutingFactory.getStrategy(bwMap, mapDrawer);
+		this.miningStrategy = this.miningFactory.getStrategy(mapDrawer, interactionHandler);
+		this.gameStrategy = strategyFactory.getStrategy(mapDrawer, bwMap, scoutingStrategy, player1, 
+				player2, buildingPlanner, damageEvaluator);
+		
+		
+		this.scoutingStrategy.initialize(unitInventory1.getScouts(), unitInventory1);
+		this.gameStrategy.initialize();
+
+		logger.info("latency: {} ({}). latency compensation: {}", game.getLatency(), game.getLatencyFrames(), game.isLatComEnabled());
+	
+		for (bwapi.Unit mineralPatch : game.getStaticMinerals()) {
+			this.addToInventory(mineralPatch, unitInventory1, 0);
+			this.addToInventory(mineralPatch, unitInventory2, 0);
 		}
+		for (bwapi.Unit geyser : game.getStaticGeysers()) {
+			this.addToInventory(geyser, unitInventory1, 0);
+			this.addToInventory(geyser, unitInventory2, 0);
+		}
+		
+		game.setTextSize(bwapi.Text.Size.Enum.Default);
+		this.onStart();
 	}
 	
-	@Override
 	public void onEnd(boolean isWinner) {
 		
 		logger.info("--- ending game - {}.", (isWinner? "WIN": "LOSS"));
 	}
 	
-	@Override
 	public void onFrame() {
 		
-		try {
-			
-			int frameCount = interactionHandler.getFrameCount();
-			
-			if (!gameStarted || frameCount < 1) {
-				return;
-			}
-			
-			miningStrategy.run(frameCount);
-			
-			/*
-			 * Do every 5 frames (just for performance reasons)
-			 */
-			if (frameCount % 5 == 0) {
-				
-				if (scoutingEnabled) {
-					scoutingStrategy.run(frameCount);
-				}
-				
-				buildingPlanner.run(player1.minerals(), player1.gas(), frameCount);
-				
-				// some simple interaction: enable global map drawing or change logging output
-				if (interactionHandler.getKeyState(Key.K_CONTROL) && interactionHandler.getKeyState(Key.K_T)) {
-					mapDrawer.setEnabled(!mapDrawer.isEnabled());
-				} else if (interactionHandler.getKeyState(Key.K_CONTROL) && interactionHandler.getKeyState(Key.K_R)) {
-					toggleCleanLogging();
-				}
-			}
-			
-			int availableMinerals = player1.minerals() - buildingPlanner.getQueuedMinerals();
-			int availableGas = player1.gas() - buildingPlanner.getQueuedGas();
-			int availableSupply = player1.supplyTotal() - player1.supplyUsed();
-			
-			gameStrategy.run(frameCount, availableMinerals, availableGas, availableSupply);
-			
-			drawGameInfo();
-			
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			throw e;
+		int frameCount = interactionHandler.getFrameCount();
+		
+		if (!gameStarted || frameCount < 1) {
+			return;
 		}
 		
+		miningStrategy.run(frameCount);
+		
+		/*
+		 * Do every 5 frames (just for performance reasons)
+		 */
+		if (frameCount % 5 == 0) {
+			
+			if (scoutingEnabled) {
+				scoutingStrategy.run(frameCount);
+			}
+			
+			buildingPlanner.run(player1.minerals(), player1.gas(), frameCount);
+			
+			// some simple interaction: enable global map drawing or change logging output
+			if (interactionHandler.getKeyState(Key.K_CONTROL) && interactionHandler.getKeyState(Key.K_T)) {
+				mapDrawer.setEnabled(!mapDrawer.isEnabled());
+				interactionHandler.sendText("map drawing enabled: " + mapDrawer.isEnabled());
+			} else if (interactionHandler.getKeyState(Key.K_CONTROL) && interactionHandler.getKeyState(Key.K_R)) {
+				toggleCleanLogging();
+			}
+		}
+		
+		int availableMinerals = player1.minerals() - buildingPlanner.getQueuedMinerals();
+		int availableGas = player1.gas() - buildingPlanner.getQueuedGas();
+		int availableSupply = player1.supplyTotal() - player1.supplyUsed();
+		
+		gameStrategy.run(frameCount, availableMinerals, availableGas, availableSupply);
+		
+		drawGameInfo();
 	}
 	
 	private void drawGameInfo() {
@@ -257,22 +240,21 @@ public class Main implements BWEventListener {
 		
 	}
 	
-	@Override
 	public void onSendText(String text) {
 		// do nothing
 		
 	}
-	@Override
+
 	public void onReceiveText(bwapi.Player player, String text) {
 		// do nothing
 		
 	}
-	@Override
+
 	public void onPlayerLeft(bwapi.Player player) {
 		// do nothing
 	}
 	
-	@Override
+
 	public void onNukeDetect(Position target) {
 		// do nothing
 	}
@@ -395,79 +377,60 @@ public class Main implements BWEventListener {
 		}
 	}
 	
-	@Override
-	public void onUnitDiscover(Unit bwUnit) {
+	/* default */ final void onUnitDiscover(Unit bwUnit) {
 		
-		try {
-			logger.debug("onDiscover: discovered {} with ID {}", bwUnit.getType(), bwUnit.getID());
-	
-			if (bwUnit.getPlayer().equals(player2)) {
-				addToInventory(bwUnit, unitInventory2, interactionHandler.getFrameCount());
-			}
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			throw e;
+		logger.debug("onDiscover: discovered {} with ID {}", bwUnit.getType(), bwUnit.getID());
+
+		if (bwUnit.getPlayer().getID() == player2.getID()) {
+			addToInventory(bwUnit, unitInventory2, interactionHandler.getFrameCount());
 		}
 	}
 	
-	@Override
 	public void onUnitEvade(Unit unit) {
 		// do nothing
 		
 	}
-	@Override
+
 	public void onUnitShow(Unit unit) {
 		// do nothing
 		
 	}
-	@Override
+
 	public void onUnitHide(Unit unit) {
 		// do nothing
 		
 	}
-	
-	@Override
-	public void onUnitCreate(Unit bwUnit) {
+
+	/* default */  final void onUnitCreate(Unit bwUnit) {
 		
-		try {
-			logger.debug("onCreate: New {} unit created ", bwUnit.getType());
-			if (bwUnit.getPlayer().equals(player1)) {
+		logger.debug("onCreate: New {} unit created ", bwUnit.getType());
+		if (bwUnit.getPlayer().getID() == player1.getID()) {
+			
+			if (bwUnit.getType().isBuilding()) {
 				
-				if (bwUnit.getType().isBuilding()) {
-					
-					this.addToInventory(bwUnit, unitInventory1, interactionHandler.getFrameCount());
-					if (bwUnit.getBuildUnit() != null) {
-						Worker worker = unitInventory1.getAllWorkers().getValue(bwUnit.getBuildUnit().getID());
-						buildingPlanner.onConstructionStarted(worker);
-					}
+				this.addToInventory(bwUnit, unitInventory1, interactionHandler.getFrameCount());
+				if (bwUnit.getBuildUnit() != null) {
+					Worker worker = unitInventory1.getAllWorkers().getValue(bwUnit.getBuildUnit().getID());
+					buildingPlanner.onConstructionStarted(worker);
 				}
 			}
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			throw e;
 		}
 	}
 	
-	@Override
-	public void onUnitDestroy(Unit bwUnit) {
+	/* default */  final void onUnitDestroy(Unit bwUnit) {
 		
-		try {
-			logger.debug("destroyed {} with ID {}", bwUnit.getType(), bwUnit.getID());
-	
-			if (bwUnit.getPlayer().equals(player1)) {
-				
-				onUnitDestroy(bwUnit, unitInventory1);
-			} else if (bwUnit.getPlayer().equals(player2)) {
-				
-				onUnitDestroy(bwUnit, unitInventory2);
-			} else if (bwUnit.getType().equals(UnitType.Resource_Mineral_Field)) {
-				
-				onUnitDestroy(bwUnit, unitInventory1);
-				onUnitDestroy(bwUnit, unitInventory2);
-			}
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			throw e;
+		logger.debug("destroyed {} with ID {}", bwUnit.getType(), bwUnit.getID());
+
+		if (bwUnit.getPlayer().getID() == player1.getID()) {
+			
+			onUnitDestroy(bwUnit, unitInventory1);
+		} else if (bwUnit.getPlayer().getID() == player2.getID()) {
+			
+			onUnitDestroy(bwUnit, unitInventory2);
+		} else if (bwUnit.getType().equals(UnitType.Resource_Mineral_Field)) {
+			
+			onUnitDestroy(bwUnit, unitInventory1);
+			onUnitDestroy(bwUnit, unitInventory2);
 		}
 	}
 	
@@ -477,49 +440,46 @@ public class Main implements BWEventListener {
 		
 	}
 	
-	@Override
 	public void onUnitMorph(Unit unit) {
+		// do nothing
+	}
+	
+	/* default */ final void internalOnUnitMorph(Unit unit) {
 		
 		if (unit.getType().isRefinery()) {
 			onUnitComplete(unit);
+		} else {
+			onUnitMorph(unit); // TODO remove old unit from inventory, add new unit to inventory
 		}
-		
 	}
-	@Override
+
 	public void onUnitRenegade(Unit unit) {
 		// do nothing
 		
 	}
-	@Override
+
 	public void onSaveGame(String gameName) {
 		// do nothing
 	}
 	
-	@Override
-	public void onUnitComplete(Unit bwUnit) {
+	/* default */  final void onUnitComplete(Unit bwUnit) {
 		
-		try {
-			logger.debug("completed {} with ID {}", bwUnit.getType(), bwUnit.getID());
+		logger.debug("completed {} with ID {}", bwUnit.getType(), bwUnit.getID());
+		
+		if (bwUnit.getPlayer().getID() == player1.getID()) {
+			addToInventory(bwUnit, unitInventory1, interactionHandler.getFrameCount());
+		}
+		
+		// Once the initial 4 workers and the command centers have fired their triggers we truly start the game
+		if (!gameStarted && unitInventory1.getAllWorkers().size() == 4 && !unitInventory1.getCommandCenters().isEmpty()) {
 			
-			if (bwUnit.getPlayer().equals(player1)) {
-				addToInventory(bwUnit, unitInventory1, interactionHandler.getFrameCount());
-			}
-			
-			// Once the initial 4 workers and the command centers have fired their triggers we truly start the game
-			if (!gameStarted && unitInventory1.getAllWorkers().size() == 4 && !unitInventory1.getCommandCenters().isEmpty()) {
-				
-				unitInventory1.getMiningWorkers().addAll(unitInventory1.getAllWorkers());
-				miningStrategy.initialize(unitInventory1.getCommandCenters(), unitInventory1.getMiningWorkers(), unitInventory1.getMineralPatches());
-				gameStrategy.start(player1.minerals(), player1.gas());
-				gameStarted = true;
-			}
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			throw e;
+			unitInventory1.getMiningWorkers().addAll(unitInventory1.getAllWorkers());
+			miningStrategy.initialize(unitInventory1.getCommandCenters(), unitInventory1.getMiningWorkers(), unitInventory1.getMineralPatches());
+			gameStrategy.start(player1.minerals(), player1.gas());
+			gameStarted = true;
 		}
 	}
 	
-	@Override
 	public void onPlayerDropped(bwapi.Player player) {
 		// do nothing
 	}

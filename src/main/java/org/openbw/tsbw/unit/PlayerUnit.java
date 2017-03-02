@@ -24,7 +24,7 @@ public class PlayerUnit extends Unit {
 		this.damageEvaluator = damageEvaluator;
 		this.unitType = bwUnit.getType();
 		this.lastKnownPosition = bwUnit.getPosition();
-		this.lastKnownHitPoints = bwUnit.getHitPoints();
+		this.lastKnownHitPoints = this.unitType.maxHitPoints();
 	}
 
 	protected PlayerUnit() {
@@ -90,6 +90,14 @@ public class PlayerUnit extends Unit {
 	
 	public boolean isFlying() {
 		return bwUnit.isFlying();
+	}
+	
+	public boolean isDetected() {
+		return bwUnit.isDetected();
+	}
+	
+	public boolean isCloaked() {
+		return bwUnit.isCloaked();
 	}
 	
 	public boolean isFlyer() {

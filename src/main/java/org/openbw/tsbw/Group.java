@@ -1,8 +1,7 @@
 package org.openbw.tsbw;
 
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,11 +15,11 @@ public class Group<T extends Unit> extends TreeSet<T> {
 	
 	protected String name;
 	
-	protected Set<GroupListener<T>> listeners;
+	protected List<GroupListener<T>> listeners;
 	
 	/* default */ Group(String name) {
 		this.name = name;
-		this.listeners = new HashSet<GroupListener<T>>();
+		this.listeners = new LinkedList<GroupListener<T>>();
 	}
 	
 	/* default */ Group(String name, List<T> units) {

@@ -49,4 +49,11 @@ public abstract class AbstractGameStrategy {
 	 * @param availableSupply
 	 */
 	public abstract void run(int frame, int availableMinerals, int availableGas, int availableSupply);
+	
+	/**
+	 * Is called after a game has ended. Can optionally be used to do cleanup before starting a new game.
+	 */
+	public void stop() {
+		// do nothing
+	}
 }

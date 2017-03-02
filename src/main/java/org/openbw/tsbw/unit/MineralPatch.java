@@ -5,10 +5,10 @@ import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.MapDrawer;
 import org.openbw.tsbw.Constants;
+import org.openbw.tsbw.MyMap;
 
 import bwapi.Color;
 import bwapi.Position;
-import bwapi.Region;
 import bwapi.TilePosition;
 import bwapi.UnitType;
 
@@ -18,7 +18,7 @@ public class MineralPatch extends Unit {
 	
 	public enum Status {BEING_MINED, FREE};
 	
-	private Region myRegion;
+	private Position myRegionCenter;
 	private Status status;
 	
 	private int assignedScvs;
@@ -34,19 +34,14 @@ public class MineralPatch extends Unit {
 		this.status = Status.FREE;
 		this.assignedScvs = 0;
 		this.lastKnownResources = bwUnit.getResources();
-		this.myRegion = bwMap.getRegionAt(bwUnit.getPosition());
-		if (this.myRegion == null) {
-			logger.error("Could not get region for patch {} at {}.", bwUnit.getID(), bwUnit.getPosition());
+		this.myRegionCenter = MyMap.getRegionCenter(bwUnit.getPosition());
+		if (this.myRegionCenter == null) {
+			logger.error("Could not get region for patch " + bwUnit.getID() + " at " + bwUnit.getPosition());
 		}
 	}
 
 	public boolean isBeingGathered() {
 		return bwUnit.isBeingGathered();
-	}
-	
-	public void update(int frame, int resources) {
-		this.lastSpotted = frame;
-		this.lastKnownResources = resources;
 	}
 	
 	public int getLastKnownResources() {
@@ -88,24 +83,38 @@ public class MineralPatch extends Unit {
 		return factor;
 	}
 	
+	public void update(int frame, int resources) {
+		this.lastSpotted = frame;
+		this.lastKnownResources = resources;
+	}
+	
 	public void updateDistance(CommandCenter commandCenter, boolean wipeScvCount) {
 		
 		if (wipeScvCount) {
 			this.assignedScvs = 0;
 		}
+		Position commandCenterRegionCenter = MyMap.getRegionCenter(commandCenter.getPosition());
 		
 		double roundTripTime;
 		double groundDistance;
 		int dx = bwUnit.getPosition().getX() - commandCenter.getPosition().getX();
 		int dy = bwUnit.getPosition().getY() - commandCenter.getPosition().getY();
 		
-		groundDistance = this.getDistance(commandCenter);
-		
-		double accelerationDistance = 48.4128;
-		double turnPenalty = 20.0;
-		double timeAccelerating = 4 * accelerationDistance / UnitType.Terran_SCV.topSpeed();
-		double topSpeedTime = (groundDistance * 2 - accelerationDistance * 2) / UnitType.Terran_SCV.topSpeed();
-		roundTripTime = topSpeedTime + timeAccelerating + Constants.MINING_TIME + turnPenalty;
+		if (myRegionCenter != null && myRegionCenter.equals(commandCenterRegionCenter)) {
+			
+			groundDistance = this.getDistance(commandCenter);
+			
+			double accelerationDistance = 48.4128;
+			double turnPenalty = 20.0;
+			double timeAccelerating = 4 * accelerationDistance / UnitType.Terran_SCV.topSpeed();
+			double topSpeedTime = (groundDistance * 2 - accelerationDistance * 2) / UnitType.Terran_SCV.topSpeed();
+			roundTripTime = topSpeedTime + timeAccelerating + Constants.MINING_TIME + turnPenalty;
+			
+		} else {
+			
+			groundDistance = (int)MyMap.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
+			roundTripTime = groundDistance * 2 / UnitType.Terran_SCV.topSpeed() + Constants.MINING_TIME;
+		}
 		
 		if (groundDistance > 0 && roundTripTime < this.roundTripTimeToClosestCC) {
 			

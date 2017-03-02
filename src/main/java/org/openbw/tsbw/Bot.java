@@ -133,6 +133,8 @@ public abstract class Bot {
 		this.gameStarted = false;
 		Game game = mirror.getGame();
 		
+		MyMap.analyze();
+		
 		this.player1.initialize(game.self());
 		this.player2.initialize(game.enemy());
 		
@@ -173,6 +175,7 @@ public abstract class Bot {
 	public void onEnd(boolean isWinner) {
 		
 		logger.info("--- ending game - {}.", (isWinner? "WIN": "LOSS"));
+		this.gameStrategy.stop();
 	}
 	
 	public void onFrame() {
@@ -269,7 +272,7 @@ public abstract class Bot {
 				if (type.equals(UnitType.Resource_Vespene_Geyser)) {
 					
 					inventory.register(UnitFactory.create(Geyser.class, bwUnit, this.bwMap));
-				} else if (type.equals(UnitType.Resource_Mineral_Field)) {
+				} else if (type.isMineralField()) {
 					
 					inventory.register(UnitFactory.create(MineralPatch.class, bwUnit, this.bwMap));
 				} else if (type.isRefinery()) {
@@ -378,7 +381,7 @@ public abstract class Bot {
 	
 	/* default */ final void onUnitDiscover(Unit bwUnit) {
 		
-		logger.debug("onDiscover: discovered {} with ID {}", bwUnit.getType(), bwUnit.getID());
+		logger.trace("onDiscover: discovered {} with ID {}", bwUnit.getType(), bwUnit.getID());
 
 		if (bwUnit.getPlayer().getID() == player2.getID()) {
 			addToInventory(bwUnit, unitInventory2, interactionHandler.getFrameCount());
@@ -402,7 +405,7 @@ public abstract class Bot {
 
 	/* default */  final void onUnitCreate(Unit bwUnit) {
 		
-		logger.debug("onCreate: New {} unit created ", bwUnit.getType());
+		logger.trace("onCreate: New {} unit created ", bwUnit.getType());
 		if (bwUnit.getPlayer().getID() == player1.getID()) {
 			
 			if (bwUnit.getType().isBuilding()) {
@@ -426,7 +429,7 @@ public abstract class Bot {
 		} else if (bwUnit.getPlayer().getID() == player2.getID()) {
 			
 			onUnitDestroy(bwUnit, unitInventory2);
-		} else if (bwUnit.getType().equals(UnitType.Resource_Mineral_Field)) {
+		} else if (bwUnit.getType().isMineralField()) {
 			
 			onUnitDestroy(bwUnit, unitInventory1);
 			onUnitDestroy(bwUnit, unitInventory2);
@@ -463,7 +466,7 @@ public abstract class Bot {
 	
 	/* default */  final void onUnitComplete(Unit bwUnit) {
 		
-		logger.debug("completed {} with ID {}", bwUnit.getType(), bwUnit.getID());
+		logger.trace("completed {} with ID {}", bwUnit.getType(), bwUnit.getID());
 		
 		if (bwUnit.getPlayer().getID() == player1.getID()) {
 			addToInventory(bwUnit, unitInventory1, interactionHandler.getFrameCount());

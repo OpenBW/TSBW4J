@@ -313,7 +313,8 @@ public class UnitInventory {
 	
 	public void onUnitDestroy(bwapi.Unit bwUnit, int frameCount) {
 		
-		if (bwUnit.getType().equals(UnitType.Resource_Mineral_Field)) {
+		logger.trace("{} got destroyed", bwUnit);
+		if (bwUnit.getType().isMineralField()) {
 			for (MineralPatch patch : this.mineralPatches) {
 				if (patch.getID() == bwUnit.getID()) {
 					patch.update(frameCount);
@@ -349,7 +350,7 @@ public class UnitInventory {
 					return true;
 				}
 			}
-		} else if (bwUnit.getType().equals(UnitType.Resource_Mineral_Field)) {
+		} else if (bwUnit.getType().isMineralField()) {
 			for (MineralPatch patch : this.mineralPatches) {
 				if (patch.getID() == bwUnit.getID()) {
 					patch.update(frameCount, bwUnit.getResources());

@@ -51,7 +51,7 @@ public class BuildingPlanner  {
 			for (ConstructionProject project : queue) {
 				if (project.hasBuilt(building)) {
 					Worker worker = project.getAssignedWorker();
-					constructorSquad.move(worker, unitInventory.getMiningWorkers());
+					constructorSquad.move(worker, unitInventory.getAvailableWorkers());
 					project.setStatus(ConstructionProject.Status.COMPLETED);
 					queue.remove(project);
 					completed.add(project);

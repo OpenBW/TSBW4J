@@ -62,8 +62,16 @@ public class MobileUnit extends PlayerUnit {
 		return super.bwUnit.attack(target.bwUnit);
 	}
 	
+	public boolean attack(Unit target, boolean shift) {
+		return super.bwUnit.attack(target.bwUnit, shift);
+	}
+	
 	public boolean attack(Position target) {
 		return super.bwUnit.attack(target);
+	}
+	
+	public boolean attack(Position target, boolean shift) {
+		return super.bwUnit.attack(target, shift);
 	}
 	
 	public boolean isStuck() {

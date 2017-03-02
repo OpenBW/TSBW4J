@@ -4,7 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import bwapi.Pair;
+import bwapi.Position;
 import bwapi.TilePosition;
 import bwta.BWTA;
 import bwta.Chokepoint;
@@ -13,23 +17,39 @@ import bwta.Region;
 // TODO un-static this
 public class MyMap {
 
+	private static final Logger logger = LogManager.getLogger();
+
 	private static Map<Chokepoint, Integer> chokePoints = new HashMap<Chokepoint, Integer>();
 	
 	private MyMap() {
 	
 	}
 	
+	public static void analyze() {
+		
+		logger.info("Analyzing map...");
+		BWTA.readMap();
+		BWTA.analyze();
+		logger.info("Map data ready");
+	}
+	
+	public static Position getRegionCenter(Position position) {
+		
+		Region region = BWTA.getRegion(position);
+		if (region == null) {
+			return null;
+		} else {
+			return region.getCenter();
+		}
+	}
+	
 	public static int getGroundDistance(TilePosition pos1, TilePosition pos2) {
 		
-		// "no BWTA" hack
-		//return (int)pos1.getDistance(pos2);
-		return BWTA.getGroundDistance2(pos1, pos2);
+		return (int)BWTA.getGroundDistance(pos1, pos2);
 	}
 	
 	public static boolean isConnected(TilePosition pos1, TilePosition pos2) {
 		
-		// "no BWTA" hack
-		//return true;
 		return BWTA.isConnected(pos1, pos2);
 	}
 	

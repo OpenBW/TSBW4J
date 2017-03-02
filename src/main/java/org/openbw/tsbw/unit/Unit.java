@@ -89,11 +89,11 @@ public class Unit implements Comparable<Unit> {
 		return this.bwUnit.getType().width();
 	}
 	
-	public int getTileHeight() {
+	public int tileHeight() {
 		return this.bwUnit.getType().tileHeight();
 	}
 	
-	public int getTileWidth() {
+	public int tileWidth() {
 		return this.bwUnit.getType().tileWidth();
 	}
 	

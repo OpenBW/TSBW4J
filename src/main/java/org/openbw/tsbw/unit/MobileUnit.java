@@ -26,6 +26,14 @@ public class MobileUnit extends PlayerUnit {
 		return super.unitType.topSpeed();
 	}
 	
+	public double getVelocityX() {
+		return super.bwUnit.getVelocityX();
+	}
+	
+	public double getVelocityY() {
+		return super.bwUnit.getVelocityY();
+	}
+	
 	public boolean isIdle() {
 		return super.bwUnit.isIdle();
 	}

@@ -2,6 +2,7 @@ package org.openbw.tsbw.strategy;
 
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
+import org.openbw.bwapi.InteractionHandler;
 import org.openbw.bwapi.MapDrawer;
 import org.openbw.bwapi.Player;
 import org.openbw.tsbw.building.BuildingPlanner;
@@ -15,10 +16,11 @@ public abstract class AbstractGameStrategy {
 	protected Player enemy;
 	protected BuildingPlanner buildingPlanner;
 	protected DamageEvaluator damageEvaluator;
+	protected InteractionHandler interactionHandler;
 	
 	public AbstractGameStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
 			Player player1, Player player2, BuildingPlanner buildingPlanner,
-			DamageEvaluator damageEvaluator) {
+			DamageEvaluator damageEvaluator, InteractionHandler interactionHandler) {
 		
 		this.mapDrawer = mapDrawer;
 		this.bwMap = bwMap;
@@ -27,6 +29,7 @@ public abstract class AbstractGameStrategy {
 		this.enemy = player2;
 		this.buildingPlanner = buildingPlanner;
 		this.damageEvaluator = damageEvaluator;
+		this.interactionHandler = interactionHandler;
 	}
 
 	/**

@@ -4,6 +4,7 @@ import org.openbw.bwapi.BWMap;
 
 import bwapi.Position;
 import bwapi.TilePosition;
+import bwapi.UnitType;
 
 public class Geyser extends Unit {
 
@@ -60,5 +61,9 @@ public class Geyser extends Unit {
 	 */
 	public TilePosition getTilePosition() {
 		return super.bwUnit.getInitialTilePosition();
+	}
+
+	public boolean hasMorphed() {
+		return !super.bwUnit.equals(UnitType.Resource_Vespene_Geyser);
 	}
 }

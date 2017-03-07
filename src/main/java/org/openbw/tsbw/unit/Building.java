@@ -6,6 +6,7 @@ import org.openbw.tsbw.Squad;
 
 import bwapi.Position;
 import bwapi.TilePosition;
+import bwapi.UnitType;
 
 public class Building extends PlayerUnit {
 
@@ -40,6 +41,10 @@ public class Building extends PlayerUnit {
 		return time;
 	}
 
+	public boolean hasMorphed() {
+		return !this.unitType.equals(bwUnit.getType());
+	}
+	
 	public boolean isCompleted() {
 		return bwUnit.isCompleted();
 	}

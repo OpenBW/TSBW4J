@@ -133,21 +133,21 @@ public class BuildingPlanner  {
 		ConstructionProject project = new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, constructionSite);
 		project.setAssignedWorker(worker);
 		this.queue.add(project);
-		logger.debug("added {} building at {} with worker {} to queue", construction, constructionSite, worker);
+		logger.debug("added {} at {} with worker {} to queue", construction, constructionSite, worker);
 		return uniqueIdCounter;
 	}
 
 	public int queue(Construction construction, TilePosition constructionSite) {
 		
 		this.queue.add(new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, constructionSite));
-		logger.debug("added {} building at {} to queue", construction, constructionSite);
+		logger.debug("added {} at {} to queue", construction, constructionSite);
 		return uniqueIdCounter;
 	}
 
 	public int queue(Construction construction) {
 		
 		this.queue.add(new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler));
-		logger.debug("added {} building to queue", construction);
+		logger.debug("added {} to queue", construction);
 		return uniqueIdCounter;
 	}
 
@@ -196,7 +196,7 @@ public class BuildingPlanner  {
 	public void run(int currentMinerals, int currentGas, int frameCount) {
 		
 		if (frameCount % 100 == 0) {
-			logger.debug("building queue size: {}", queue.size());
+			logger.debug("frame {}: building queue size: {}", frameCount, queue.size());
 		}
 
 		finishAbandonedConstructions();

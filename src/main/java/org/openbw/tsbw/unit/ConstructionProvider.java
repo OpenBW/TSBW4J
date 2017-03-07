@@ -98,4 +98,9 @@ public class ConstructionProvider implements Construction {
 	public boolean build(Worker worker, TilePosition constructionSite) {
 		return worker.build(this.unitType, constructionSite);
 	}
+	
+	@Override
+	public String toString() {
+		return this.unitType + " construction";
+	}
 }

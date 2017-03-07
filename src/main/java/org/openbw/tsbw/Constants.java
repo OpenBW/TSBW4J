@@ -19,6 +19,11 @@ public class Constants {
 	public static final double SCV_ACCELERATION = 0.25;
 	
 	/**
+	 * The duration of a marine attack in frames. This is part of the cooldown.
+	 * That is, the marine shoots for x frames, then rests for (cooldown - x) frames.
+	 */
+	public static final int MARINE_ATTACK_ANIMATION_DURATION = 9;
+	/**
 	 * Time the SCV spends at the mineral patch mining, before it obtains a cargo.
 	 * It's actually a random value between 77 and 82
 	 */

@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi.BWMap;
 import org.openbw.bwapi.DamageEvaluator;
+import org.openbw.bwapi.InteractionHandler;
 import org.openbw.bwapi.MapDrawer;
 import org.openbw.bwapi.Player;
 import org.openbw.tsbw.Group;
@@ -178,9 +179,9 @@ public class DummyStrategy extends AbstractGameStrategy {
 	
 	public DummyStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
 			Player self, Player enemy, BuildingPlanner buildingPlanner,
-			DamageEvaluator damageEvaluator) {
+			DamageEvaluator damageEvaluator, InteractionHandler interactionHandler) {
 	
-		super(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator);
+		super(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator, interactionHandler);
 		
 		this.myInventory = self.getUnitInventory();
 		this.enemyInventory = enemy.getUnitInventory();

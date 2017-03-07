@@ -22,6 +22,7 @@ import org.openbw.tsbw.unit.Worker;
 
 import bwapi.Position;
 import bwapi.UnitType;
+import bwapi.WeaponType;
 
 public class UnitInventory {
 
@@ -229,7 +230,7 @@ public class UnitInventory {
 					int range = 0;
 					if (squadUnit.isFlying() && armyUnit.getAirWeapon() != null) {
 						range = armyUnit.getAirWeapon().maxRange() + 32;
-					} else if (armyUnit.getGroundWeapon() != null) {
+					} else if (armyUnit.getGroundWeapon() != WeaponType.None) {
 						range = Math.max(160, armyUnit.getGroundWeapon().maxRange() + 32);
 					}
 					if (armyUnit.getDistance(squadUnit) <= range) {
@@ -276,22 +277,6 @@ public class UnitInventory {
 	public List<MobileUnit> getMobileUnitsInRadius(Unit unit, int radius) {
 		
 		return getMobileUnitsInRadius(unit.getPosition(), radius);
-	}
-	
-	/**
-	 * Returns a list of units (including buildings) within given radius from given unit.
-	 * @param unit
-	 * @param radius
-	 * @return
-	 */
-	public List<PlayerUnit> getUnitsInRadius(Unit unit, int radius) {
-		
-		List<PlayerUnit> allUnits = new ArrayList<PlayerUnit>();
-		allUnits.addAll(allArmyUnits);
-		allUnits.addAll(allWorkers);
-		allUnits.addAll(buildings);
-		
-		return unit.getUnitsInRadius(radius, allUnits);
 	}
 	
 	// TODO For now just assume that mining workers are always available. later maybe give the developer a way to choose behavior.
@@ -360,16 +345,34 @@ public class UnitInventory {
 		} else if (bwUnit.getType().equals(UnitType.Resource_Vespene_Geyser)) {
 			for (Geyser geyser : this.geysers) {
 				if (geyser.getID() == bwUnit.getID()) {
-					geyser.update(frameCount, bwUnit.getResources());
-					return true;
+					
+					// if unit was not a geyser but is now, it has morphed. remove it return false to add as a gesyer again
+					if (geyser.hasMorphed()) {
+						this.geysers.remove(geyser);
+						return false;
+					} else {
+						geyser.update(frameCount, bwUnit.getResources());
+						return true;
+					}
 				}
 			}
-		} else if (bwUnit.getType().isBuilding()) {
+		} else if (bwUnit.getType().isBuilding() || bwUnit.getType().isRefinery()) {
 			for (Building building : this.buildings) {
 				if (building.getID() == bwUnit.getID()) {
-					building.update(frameCount);
-					building.update(bwUnit.getPosition(), bwUnit.getHitPoints());
-					return true;
+					
+					// if a building is not the same type as it was before, it has morphed. remove it and return false to add the new building
+					if (building.hasMorphed()) {
+						if (bwUnit.getType().isRefinery()) {
+							geysers.remove(geysers.getValue(bwUnit.getID()));
+						} else {
+							buildings.remove(building);
+						}
+						return false;
+					} else {
+						building.update(frameCount);
+						building.update(bwUnit.getPosition(), bwUnit.getHitPoints());
+						return true;
+					}
 				}
 			}
 		} else {

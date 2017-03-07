@@ -127,7 +127,7 @@ public abstract class Bot {
 	
 	/* default */ final void internalOnStart() {
 		
-		logger.info("--- starting game - {}", new Date());
+		logger.info("--- game started at {}.", new Date());
 		logger.debug("CWD: {}", System.getProperty("user.dir"));
 		
 		this.gameStarted = false;
@@ -152,11 +152,12 @@ public abstract class Bot {
 		this.scoutingStrategy = this.scoutingFactory.getStrategy(bwMap, mapDrawer);
 		this.miningStrategy = this.miningFactory.getStrategy(mapDrawer, interactionHandler);
 		this.gameStrategy = strategyFactory.getStrategy(mapDrawer, bwMap, scoutingStrategy, player1, 
-				player2, buildingPlanner, damageEvaluator);
+				player2, buildingPlanner, damageEvaluator, interactionHandler);
 		
 		this.scoutingStrategy.initialize(unitInventory1.getScouts(), unitInventory1);
 		this.gameStrategy.initialize();
-
+		
+		game.setLatCom(false);
 		logger.info("latency: {} ({}). latency compensation: {}", game.getLatency(), game.getLatencyFrames(), game.isLatComEnabled());
 	
 		for (bwapi.Unit mineralPatch : game.getStaticMinerals()) {
@@ -183,6 +184,7 @@ public abstract class Bot {
 		int frameCount = interactionHandler.getFrameCount();
 		
 		if (!gameStarted || frameCount < 1) {
+			logger.info("frame 0 starting at {}.", new Date());
 			return;
 		}
 		
@@ -450,8 +452,10 @@ public abstract class Bot {
 		
 		if (unit.getType().isRefinery()) {
 			onUnitComplete(unit);
+		} else if (unit.getType().equals(UnitType.Resource_Vespene_Geyser)) {
+			onUnitDestroy(unit);
 		} else {
-			onUnitMorph(unit); // TODO remove old unit from inventory, add new unit to inventory
+			onUnitMorph(unit); // TODO adjust unit type in inventory (maybe remove and re-add unit?)
 		}
 	}
 

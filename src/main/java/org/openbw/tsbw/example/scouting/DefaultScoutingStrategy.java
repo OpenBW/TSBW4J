@@ -5,19 +5,21 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.MapDrawer;
+import org.openbw.bwapi4j.BWMap;
+import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.MapDrawer;
+import org.openbw.bwapi4j.Position;
+import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.type.Color;
+import org.openbw.bwapi4j.unit.MobileUnit;
+import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
+import org.openbw.tsbw.MyMap;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
-import org.openbw.tsbw.unit.MobileUnit;
-import org.openbw.tsbw.unit.Worker;
 
-import bwapi.Color;
-import bwapi.Position;
-import bwapi.Region;
-import bwapi.TilePosition;
+import bwta.Region;
 
 public class DefaultScoutingStrategy extends ScoutingStrategy {
 
@@ -30,9 +32,9 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 	
 	private double totalScore;
 	
-	public DefaultScoutingStrategy(BWMap bwMap, MapDrawer mapDrawer) {
+	public DefaultScoutingStrategy(BWMap bwMap, MapDrawer mapDrawer, InteractionHandler interactionHandler) {
 		
-		super(bwMap, mapDrawer);
+		super(bwMap, mapDrawer, interactionHandler);
 	}
 	
 	public double calculateRelativeScore() {
@@ -64,10 +66,10 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 		List<Region> veryHighValueRegions = new ArrayList<Region>();
 		List<Region> highValueRegions = new ArrayList<Region>();
 		for (TilePosition baseLocation : this.bwMap.getStartLocations()) {
-			veryHighValueRegions.add(bwMap.getRegionAt(baseLocation.toPosition()));
+			veryHighValueRegions.add(MyMap.getRegion(baseLocation.toPosition()));
 		}
 		for (TilePosition baseLocation : bwMap.getStartLocations()) {
-			highValueRegions.add(bwMap.getRegionAt(baseLocation.toPosition()));
+			highValueRegions.add(MyMap.getRegion(baseLocation.toPosition()));
 		}
 		
 		initializeEmpty();
@@ -76,13 +78,13 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 			for (int y = 0; y < bwMap.mapHeight(); y++) {
 				
 				map[x][y] = 2;
-				if (highValueRegions.contains(bwMap.getRegionAt(x * 32, y * 32))) {
+				if (highValueRegions.contains(MyMap.getRegion(x * 32, y * 32))) {
 					map[x][y] += 1;
 				}
-				if (veryHighValueRegions.contains(bwMap.getRegionAt(x * 32, y * 32))) {
+				if (veryHighValueRegions.contains(MyMap.getRegion(x * 32, y * 32))) {
 					map[x][y] += 2;
 				}
-				if (bwMap.getRegionAt(bwMap.getMyStartLocation().toPosition()).equals(bwMap.getRegionAt(x * 32, y * 32))) {
+				if (MyMap.getRegion(this.interactionHandler.self().getStartLocation().toPosition()).equals(MyMap.getRegion(x * 32, y * 32))) {
 					map[x][y] -= 0.5;
 				}
 				initialMap[x][y] = map[x][y];
@@ -120,7 +122,7 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 			if (!unit.isMoving() || unit.getDistance(unit.getTargetPosition()) < 16) { // this is to not lose time when scout full-stops
 				Position scoutingTarget = getScoutingTargetPosition(unit);
 				if (scoutingTarget!= null) {
-					if (unit instanceof Worker) {
+					if (unit instanceof SCV) {
 						unit.move(scoutingTarget);
 					} else {
 						unit.attack(scoutingTarget);
@@ -134,14 +136,14 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 
 	public void showHeatMap() {
 		
-		TilePosition screenPosition = mapDrawer.getScreenPosition().toTilePosition();
+		TilePosition screenPosition = interactionHandler.getScreenPosition().toTilePosition();
 		
 		mapDrawer.drawTextScreen(10, 20, "showing scouting heat map");
 		for (int x = screenPosition.getX(); x < screenPosition.getX() + Constants.SCREEN_WIDTH; x++) {
 			
 			for (int y = screenPosition.getY(); y < screenPosition.getY() + Constants.SCREEN_HEIGHT; y++) {
 				
-				mapDrawer.drawCircleMap(tileToPos(x), tileToPos(y), (int)map[x][y], Color.Yellow);
+				mapDrawer.drawCircleMap(tileToPos(x), tileToPos(y), (int)map[x][y], Color.YELLOW);
 			}
 		}
 	}

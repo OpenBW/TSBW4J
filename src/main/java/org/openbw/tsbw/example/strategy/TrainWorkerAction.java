@@ -1,6 +1,6 @@
 package org.openbw.tsbw.example.strategy;
 
-import org.openbw.tsbw.unit.CommandCenter;
+import org.openbw.bwapi4j.unit.CommandCenter;
 
 public class TrainWorkerAction implements BoAction {
 

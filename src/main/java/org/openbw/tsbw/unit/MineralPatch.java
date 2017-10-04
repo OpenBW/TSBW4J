@@ -1,18 +1,19 @@
 package org.openbw.tsbw.unit;
 
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.MapDrawer;
+import org.openbw.bwapi4j.MapDrawer;
+import org.openbw.bwapi4j.Position;
+import org.openbw.bwapi4j.type.Color;
+import org.openbw.bwapi4j.type.UnitType;
+import org.openbw.bwapi4j.unit.CommandCenter;
+import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MyMap;
 
-import bwapi.Color;
-import bwapi.Position;
-import bwapi.TilePosition;
-import bwapi.UnitType;
 
-public class MineralPatch extends Unit {
+public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 
 	private static final Logger logger = LogManager.getLogger();
 	
@@ -22,40 +23,22 @@ public class MineralPatch extends Unit {
 	private Status status;
 	
 	private int assignedScvs;
-	private int lastKnownResources;
 	
 	private CommandCenter closestCommandCenter;
 	private int dyToClosestCC = Integer.MAX_VALUE;
 	private int dxToClosestCC = Integer.MAX_VALUE;
 	private double roundTripTimeToClosestCC = Double.MAX_VALUE;
 	
-	/* default */ MineralPatch(bwapi.Unit bwUnit, BWMap bwMap) {
-		super(bwUnit, bwMap, 0);
+	/* default */ MineralPatch(int id) {
+		super(id);
 		this.status = Status.FREE;
 		this.assignedScvs = 0;
-		this.lastKnownResources = bwUnit.getResources();
-		this.myRegionCenter = MyMap.getRegionCenter(bwUnit.getPosition());
+		this.myRegionCenter = MyMap.getRegionCenter(this.getTilePosition());
 		if (this.myRegionCenter == null) {
-			logger.error("Could not get region for patch " + bwUnit.getID() + " at " + bwUnit.getPosition());
+			logger.error("Could not get region for {} at {}", this, this.getTilePosition());
 		}
 	}
 
-	public boolean isBeingGathered() {
-		return bwUnit.isBeingGathered();
-	}
-	
-	public int getLastKnownResources() {
-		return this.lastKnownResources;
-	}
-	
-	public int getResources() {
-		return bwUnit.getResources();
-	}
-	
-	public int getInitialResources() {
-		return bwUnit.getInitialResources();
-	}
-	
 	public Status getStatus() {
 		return this.status;
 	}
@@ -83,9 +66,11 @@ public class MineralPatch extends Unit {
 		return factor;
 	}
 	
-	public void update(int frame, int resources) {
-		this.lastSpotted = frame;
-		this.lastKnownResources = resources;
+	public void resetDistances() {
+		this.closestCommandCenter = null;
+		this.dyToClosestCC = Integer.MAX_VALUE;
+		this.dxToClosestCC = Integer.MAX_VALUE;
+		this.roundTripTimeToClosestCC = Double.MAX_VALUE;
 	}
 	
 	public void updateDistance(CommandCenter commandCenter, boolean wipeScvCount) {
@@ -93,12 +78,12 @@ public class MineralPatch extends Unit {
 		if (wipeScvCount) {
 			this.assignedScvs = 0;
 		}
-		Position commandCenterRegionCenter = MyMap.getRegionCenter(commandCenter.getPosition());
+		Position commandCenterRegionCenter = MyMap.getRegionCenter(commandCenter.getTilePosition());
 		
 		double roundTripTime;
 		double groundDistance;
-		int dx = bwUnit.getPosition().getX() - commandCenter.getPosition().getX();
-		int dy = bwUnit.getPosition().getY() - commandCenter.getPosition().getY();
+		int dx = this.getPosition().getX() - commandCenter.getPosition().getX();
+		int dy = this.getPosition().getY() - commandCenter.getPosition().getY();
 		
 		if (myRegionCenter != null && myRegionCenter.equals(commandCenterRegionCenter)) {
 			
@@ -125,29 +110,15 @@ public class MineralPatch extends Unit {
 		}
 	}
 
-	/**
-	 * Always returns the initial position, since mineral patches cannot move.
-	 */
-	public Position getPosition() {
-		return super.bwUnit.getInitialPosition();
-	}
-	
-	/**
-	 * Always returns the initial tile position, since mineral patches cannot move.
-	 */
-	public TilePosition getTilePosition() {
-		return super.bwUnit.getInitialTilePosition();
-	}
-	
 	public void drawInfo(MapDrawer mapDrawer) {
 		mapDrawer.drawBoxMap(
 				this.getX() - UnitType.Resource_Mineral_Field.width()  / 2, 
 				this.getY() - UnitType.Resource_Mineral_Field.height() / 2, 
 				this.getX() + UnitType.Resource_Mineral_Field.width()  / 2, 
-				this.getY() + UnitType.Resource_Mineral_Field.height() / 2, Color.Red);
+				this.getY() + UnitType.Resource_Mineral_Field.height() / 2, Color.RED);
 		
 		mapDrawer.drawLineMap(this.getX() + UnitType.Resource_Mineral_Field.width() / 2, this.getY(), this.getX() + UnitType.Resource_Mineral_Field.width() / 2 + (int)this.getRoundTripTime(), 
-				this.getY(), Color.Yellow);
+				this.getY(), Color.YELLOW);
 		
 		int x = this.getPosition().getX();
 		int y = this.getPosition().getY();

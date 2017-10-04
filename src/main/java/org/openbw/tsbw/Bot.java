@@ -1,82 +1,50 @@
 package org.openbw.tsbw;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.DamageEvaluator;
-import org.openbw.bwapi.InteractionHandler;
-import org.openbw.bwapi.MapDrawer;
-import org.openbw.bwapi.Player;
+import org.openbw.bwapi4j.BW;
+import org.openbw.bwapi4j.BWMap;
+import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.MapDrawer;
+import org.openbw.bwapi4j.Player;
+import org.openbw.bwapi4j.Position;
+import org.openbw.bwapi4j.type.Key;
+import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.PlayerUnit;
+import org.openbw.bwapi4j.unit.Refinery;
+import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.building.BuildingPlanner;
+import org.openbw.tsbw.building.Construction;
+import org.openbw.tsbw.building.DefaultConstruction;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.MiningFactory;
 import org.openbw.tsbw.strategy.MiningStrategy;
 import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
-import org.openbw.tsbw.unit.Academy;
-import org.openbw.tsbw.unit.Armory;
-import org.openbw.tsbw.unit.Barracks;
-import org.openbw.tsbw.unit.Battlecruiser;
-import org.openbw.tsbw.unit.Building;
-import org.openbw.tsbw.unit.Bunker;
-import org.openbw.tsbw.unit.CommandCenter;
-import org.openbw.tsbw.unit.Dropship;
-import org.openbw.tsbw.unit.EngineeringBay;
-import org.openbw.tsbw.unit.Factory;
-import org.openbw.tsbw.unit.Firebat;
-import org.openbw.tsbw.unit.Geyser;
-import org.openbw.tsbw.unit.Ghost;
-import org.openbw.tsbw.unit.Goliath;
-import org.openbw.tsbw.unit.Hatchery;
-import org.openbw.tsbw.unit.Marine;
-import org.openbw.tsbw.unit.Medic;
 import org.openbw.tsbw.unit.MineralPatch;
-import org.openbw.tsbw.unit.MissileTurret;
-import org.openbw.tsbw.unit.MobileUnit;
-import org.openbw.tsbw.unit.Nexus;
-import org.openbw.tsbw.unit.PhotonCannon;
-import org.openbw.tsbw.unit.Refinery;
-import org.openbw.tsbw.unit.ScienceFacility;
-import org.openbw.tsbw.unit.ScienceVessel;
-import org.openbw.tsbw.unit.SiegeTank;
-import org.openbw.tsbw.unit.Starport;
-import org.openbw.tsbw.unit.SunkenColony;
-import org.openbw.tsbw.unit.SupplyDepot;
-import org.openbw.tsbw.unit.UnitFactory;
-import org.openbw.tsbw.unit.Valkyrie;
-import org.openbw.tsbw.unit.Vulture;
-import org.openbw.tsbw.unit.Worker;
-import org.openbw.tsbw.unit.Wraith;
-
-import bwapi.Game;
-import bwapi.Key;
-import bwapi.Mirror;
-import bwapi.Position;
-import bwapi.Unit;
-import bwapi.UnitType;
+import org.openbw.tsbw.unit.VespeneGeyser;
 
 public abstract class Bot {
 
 	private static final Logger logger = LogManager.getLogger();
 
-	private Mirror mirror;
 	private BotEventListener eventListener;
+	private BW bw;
 	
 	protected Player player1;
 	protected Player player2;
 	
-	protected UnitInventory unitInventory1;
-	protected UnitInventory unitInventory2;
+	protected Map<Player, UnitInventory> unitInventories;
 	protected BWMap bwMap;
 	protected MapDrawer mapDrawer;
 	protected InteractionHandler interactionHandler;
-	protected DamageEvaluator damageEvaluator;
 	protected BuildingPlanner buildingPlanner;
 	
 	protected MiningFactory miningFactory;
@@ -95,10 +63,9 @@ public abstract class Bot {
 	public final void run() {
 		
 		logger.trace("executing run().");
-		this.mirror = new Mirror();
-		this.mirror.getModule().setEventListener(this.eventListener);
+		this.bw = new BW(this.eventListener);
 		logger.debug("starting game...");
-		this.mirror.startGame();
+		bw.startGame();
 	}
 	
 	public Bot(MiningFactory miningFactory, ScoutingFactory scoutingFactory, StrategyFactory strategyFactory) {
@@ -109,18 +76,7 @@ public abstract class Bot {
 		
 		this.eventListener = new BotEventListener(this);
 		
-		this.unitInventory1 = new UnitInventory();
-		this.unitInventory2 = new UnitInventory();
-		
-		this.player1 = new Player(this.unitInventory1);
-		this.player2 = new Player(this.unitInventory2);
-		
-		this.bwMap = new BWMap();
-		this.damageEvaluator = new DamageEvaluator();
-		this.interactionHandler = new InteractionHandler();
-		this.mapDrawer = new MapDrawer(false);
-
-		this.buildingPlanner = new BuildingPlanner(unitInventory1, interactionHandler, bwMap);
+		this.unitInventories = new HashMap<Player, UnitInventory>();
 	}
 	
 	public abstract void onStart();
@@ -130,46 +86,42 @@ public abstract class Bot {
 		logger.info("--- game started at {}.", new Date());
 		logger.debug("CWD: {}", System.getProperty("user.dir"));
 		
+		this.interactionHandler = bw.getInteractionHandler();
+        this.mapDrawer = bw.getMapDrawer();
+        this.bwMap = bw.getBWMap();
+        for (Construction construction : Construction.values()) {
+            construction.setConstructionProvider(new DefaultConstruction(construction.getType(), bwMap));
+        }
+        
 		this.gameStarted = false;
-		Game game = mirror.getGame();
 		
 		MyMap.analyze();
 		
-		this.player1.initialize(game.self());
-		this.player2.initialize(game.enemy());
-		
-		this.mapDrawer.initialize(game);
-		this.damageEvaluator.initialize(game);
-		this.bwMap.initialize(game);
-		this.interactionHandler.initialize(game);
 		logger.info("playing on {} (hash: {})", this.bwMap.mapFileName(), this.bwMap.mapHash());
 		
-		this.unitInventory1.initialize();
-		this.unitInventory2.initialize();
+		for (Player player : bw.getAllPlayers()) {
+			UnitInventory unitInventory = new UnitInventory();
+			unitInventory.initialize();
+			this.unitInventories.put(player, unitInventory);
+		}
 		
+		this.player1 = this.interactionHandler.self();
+		this.player2 = this.interactionHandler.enemy();
+		
+		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), interactionHandler, bwMap);
 		this.buildingPlanner.initialize();
 		
-		this.scoutingStrategy = this.scoutingFactory.getStrategy(bwMap, mapDrawer);
+		this.scoutingStrategy = this.scoutingFactory.getStrategy(bwMap, mapDrawer, interactionHandler);
 		this.miningStrategy = this.miningFactory.getStrategy(mapDrawer, interactionHandler);
-		this.gameStrategy = strategyFactory.getStrategy(mapDrawer, bwMap, scoutingStrategy, player1, 
-				player2, buildingPlanner, damageEvaluator, interactionHandler);
+		this.gameStrategy = strategyFactory.getStrategy(this.bw, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
-		this.scoutingStrategy.initialize(unitInventory1.getScouts(), unitInventory1);
+		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1));
 		this.gameStrategy.initialize();
 		
-		game.setLatCom(false);
-		logger.info("latency: {} ({}). latency compensation: {}", game.getLatency(), game.getLatencyFrames(), game.isLatComEnabled());
+		this.interactionHandler.enableLatCom(false);
+		logger.info("latency: {} ({}). latency compensation: {}", this.interactionHandler.getLatency(), 
+				this.interactionHandler.getLatencyFrames(), this.interactionHandler.isLatComEnabled());
 	
-		for (bwapi.Unit mineralPatch : game.getStaticMinerals()) {
-			this.addToInventory(mineralPatch, unitInventory1, 0);
-			this.addToInventory(mineralPatch, unitInventory2, 0);
-		}
-		for (bwapi.Unit geyser : game.getStaticGeysers()) {
-			this.addToInventory(geyser, unitInventory1, 0);
-			this.addToInventory(geyser, unitInventory2, 0);
-		}
-		
-		game.setTextSize(bwapi.Text.Size.Enum.Default);
 		this.onStart();
 	}
 	
@@ -182,6 +134,7 @@ public abstract class Bot {
 	public void onFrame() {
 		
 		int frameCount = interactionHandler.getFrameCount();
+		long milliSeconds = System.currentTimeMillis();
 		
 		if (!gameStarted || frameCount < 1) {
 			logger.info("frame 0 starting at {}.", new Date());
@@ -194,7 +147,6 @@ public abstract class Bot {
 		 * Do every 5 frames (just for performance reasons)
 		 */
 		if (frameCount % 5 == 0) {
-			
 			if (scoutingEnabled) {
 				scoutingStrategy.run(frameCount);
 			}
@@ -202,10 +154,10 @@ public abstract class Bot {
 			buildingPlanner.run(player1.minerals(), player1.gas(), frameCount);
 			
 			// some simple interaction: enable global map drawing or change logging output
-			if (interactionHandler.getKeyState(Key.K_CONTROL) && interactionHandler.getKeyState(Key.K_T)) {
+			if (interactionHandler.isKeyPressed(Key.K_CONTROL) && interactionHandler.isKeyPressed(Key.K_T)) {
 				mapDrawer.setEnabled(!mapDrawer.isEnabled());
 				interactionHandler.sendText("map drawing enabled: " + mapDrawer.isEnabled());
-			} else if (interactionHandler.getKeyState(Key.K_CONTROL) && interactionHandler.getKeyState(Key.K_R)) {
+			} else if (interactionHandler.isKeyPressed(Key.K_CONTROL) && interactionHandler.isKeyPressed(Key.K_R)) {
 				toggleCleanLogging();
 			}
 		}
@@ -217,6 +169,7 @@ public abstract class Bot {
 		gameStrategy.run(frameCount, availableMinerals, availableGas, availableSupply);
 		
 		drawGameInfo();
+		
 	}
 	
 	private void drawGameInfo() {
@@ -249,12 +202,12 @@ public abstract class Bot {
 		
 	}
 
-	public void onReceiveText(bwapi.Player player, String text) {
+	public void onReceiveText(Player player, String text) {
 		// do nothing
 		
 	}
 
-	public void onPlayerLeft(bwapi.Player player) {
+	public void onPlayerLeft(Player player) {
 		// do nothing
 	}
 	
@@ -263,131 +216,34 @@ public abstract class Bot {
 		// do nothing
 	}
 	
-	private void addToInventory(Unit bwUnit, UnitInventory inventory, int timeSpotted) {
+	private void addToInventory(Unit unit, UnitInventory inventory, int timeSpotted) {
 		
-		UnitType type = bwUnit.getType();
-		boolean exists = inventory.update(bwUnit, timeSpotted);
-		logger.trace("adding {} {}. exists: {}", type, bwUnit.getID(), exists);
-		
+	    if (inventory == null) {
+	        System.out.println("should not be null");
+	    }
+		boolean exists = inventory.update(unit, timeSpotted);
+		logger.trace("adding {}. exists: {}", unit, exists);
 		if (!exists) {
-			try {
-				if (type.equals(UnitType.Resource_Vespene_Geyser)) {
-					
-					inventory.register(UnitFactory.create(Geyser.class, bwUnit, this.bwMap));
-				} else if (type.isMineralField()) {
-					
-					inventory.register(UnitFactory.create(MineralPatch.class, bwUnit, this.bwMap));
-				} else if (type.isRefinery()) {
-					
-					inventory.register(UnitFactory.create(Refinery.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Academy)) {
-					
-					inventory.register(UnitFactory.create(Academy.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Armory)) {
-					
-					inventory.register(UnitFactory.create(Armory.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Barracks)) {
-					
-					inventory.register(UnitFactory.create(Barracks.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Battlecruiser)) {
-					
-					inventory.register(UnitFactory.create(Battlecruiser.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Bunker)) {
-					
-					inventory.register(UnitFactory.create(Bunker.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Command_Center)) {
-					
-					inventory.register(UnitFactory.create(CommandCenter.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Dropship)) {
-					
-					inventory.register(UnitFactory.create(Dropship.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Engineering_Bay)) {
-					
-					inventory.register(UnitFactory.create(EngineeringBay.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Factory)) {
-					
-					inventory.register(UnitFactory.create(Factory.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Firebat)) {
-					
-					inventory.register(UnitFactory.create(Firebat.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Ghost)) {
-					
-					inventory.register(UnitFactory.create(Ghost.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Goliath)) {
-					
-					inventory.register(UnitFactory.create(Goliath.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Marine)) {
-					
-					inventory.register(UnitFactory.create(Marine.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Medic)) {
-					
-					inventory.register(UnitFactory.create(Medic.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Missile_Turret)) {
-					
-					inventory.register(UnitFactory.create(MissileTurret.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Science_Facility)) {
-					
-					inventory.register(UnitFactory.create(ScienceFacility.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Science_Vessel)) {
-					
-					inventory.register(UnitFactory.create(ScienceVessel.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Siege_Tank_Tank_Mode) || type.equals(UnitType.Terran_Siege_Tank_Siege_Mode)) {
-					
-					inventory.register(UnitFactory.create(SiegeTank.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Starport)) {
-					
-					inventory.register(UnitFactory.create(Starport.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Supply_Depot)) {
-					
-					inventory.register(UnitFactory.create(SupplyDepot.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Valkyrie)) {
-					
-					inventory.register(UnitFactory.create(Valkyrie.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Vulture)) {
-					
-					inventory.register(UnitFactory.create(Vulture.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Terran_Wraith)) {
-					
-					inventory.register(UnitFactory.create(Wraith.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Zerg_Hatchery)) {
-					
-					inventory.register(UnitFactory.create(Hatchery.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Protoss_Nexus)) {
-					
-					inventory.register(UnitFactory.create(Nexus.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Protoss_Photon_Cannon)) {
-					
-					inventory.register(UnitFactory.create(PhotonCannon.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.equals(UnitType.Zerg_Sunken_Colony)) {
-					
-					inventory.register(UnitFactory.create(SunkenColony.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.isBuilding()) {
-					
-					inventory.register(UnitFactory.create(Building.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (type.isWorker()) {
-					
-					inventory.register(UnitFactory.create(Worker.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				} else if (!bwUnit.getPlayer().isNeutral()) {
-					
-					inventory.register(UnitFactory.create(MobileUnit.class, damageEvaluator, bwMap, bwUnit, timeSpotted));
-				}
-				
-			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException
-					| NoSuchMethodException | SecurityException e) {
-
-				logger.fatal("Could not create unit: " + e.getMessage(), e);
-				System.exit(1);
-			}
+		    if (unit instanceof PlayerUnit) {
+		        inventory.register((PlayerUnit)unit);
+		    } else if (unit instanceof MineralPatch) {
+		        inventory.register((MineralPatch)unit);
+		    } else if (unit instanceof VespeneGeyser) {
+		        inventory.register((VespeneGeyser)unit);
+		    }
 		}
 	}
 	
-	/* default */ final void onUnitDiscover(Unit bwUnit) {
+	/* default */ final void onUnitDiscover(Unit unit) {
 		
-		logger.trace("onDiscover: discovered {} with ID {}", bwUnit.getType(), bwUnit.getID());
-
-		if (bwUnit.getPlayer().getID() == player2.getID()) {
-			addToInventory(bwUnit, unitInventory2, interactionHandler.getFrameCount());
+		logger.trace("onDiscover: discovered {}.", unit);
+		UnitInventory inventory;
+		if (unit instanceof PlayerUnit) {
+		    inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
+		} else {
+		    inventory = this.unitInventories.get(this.player1);
 		}
+		addToInventory(unit, inventory, interactionHandler.getFrameCount());
 	}
 	
 	public void onUnitEvade(Unit unit) {
@@ -405,43 +261,28 @@ public abstract class Bot {
 		
 	}
 
-	/* default */  final void onUnitCreate(Unit bwUnit) {
+	/* default */  final void onUnitCreate(Unit unit) {
 		
-		logger.trace("onCreate: New {} unit created ", bwUnit.getType());
-		if (bwUnit.getPlayer().getID() == player1.getID()) {
+		logger.trace("onCreate: New {} unit created.", unit);
+		if (unit instanceof Building) {
+			Building building = (Building) unit;
+			this.addToInventory(unit, this.unitInventories.get(((Building) unit).getPlayer()), interactionHandler.getFrameCount());
 			
-			if (bwUnit.getType().isBuilding()) {
-				
-				this.addToInventory(bwUnit, unitInventory1, interactionHandler.getFrameCount());
-				if (bwUnit.getBuildUnit() != null) {
-					Worker worker = unitInventory1.getAllWorkers().getValue(bwUnit.getBuildUnit().getID());
-					buildingPlanner.onConstructionStarted(worker);
-				}
+			if (building.getPlayer().equals(this.player1)) {
+				buildingPlanner.onConstructionStarted(building.getBuildUnit());
 			}
 		}
 	}
 	
-	/* default */  final void onUnitDestroy(Unit bwUnit) {
+	/* default */  final void onUnitDestroy(Unit unit) {
 		
-		logger.debug("destroyed {} with ID {}", bwUnit.getType(), bwUnit.getID());
+		logger.debug("destroyed {}", unit);
 
-		if (bwUnit.getPlayer().getID() == player1.getID()) {
-			
-			onUnitDestroy(bwUnit, unitInventory1);
-		} else if (bwUnit.getPlayer().getID() == player2.getID()) {
-			
-			onUnitDestroy(bwUnit, unitInventory2);
-		} else if (bwUnit.getType().isMineralField()) {
-			
-			onUnitDestroy(bwUnit, unitInventory1);
-			onUnitDestroy(bwUnit, unitInventory2);
+		if (unit instanceof PlayerUnit) {
+			this.unitInventories.get(((PlayerUnit) unit).getPlayer()).onUnitDestroy((PlayerUnit) unit, this.interactionHandler.getFrameCount());
+		} else if (unit instanceof MineralPatch) {
+			this.unitInventories.get(this.player1).onUnitDestroy((MineralPatch)unit, this.interactionHandler.getFrameCount());
 		}
-	}
-	
-	private void onUnitDestroy(Unit bwUnit, UnitInventory unitInventory) {
-		
-		unitInventory.onUnitDestroy(bwUnit, interactionHandler.getFrameCount());
-		
 	}
 	
 	public void onUnitMorph(Unit unit) {
@@ -450,9 +291,9 @@ public abstract class Bot {
 	
 	/* default */ final void internalOnUnitMorph(Unit unit) {
 		
-		if (unit.getType().isRefinery()) {
-			onUnitComplete(unit);
-		} else if (unit.getType().equals(UnitType.Resource_Vespene_Geyser)) {
+		if (unit instanceof Refinery) {
+			onUnitCreate(unit);
+		} else if (unit instanceof VespeneGeyser) {
 			onUnitDestroy(unit);
 		} else {
 			onUnitMorph(unit); // TODO adjust unit type in inventory (maybe remove and re-add unit?)
@@ -468,25 +309,25 @@ public abstract class Bot {
 		// do nothing
 	}
 	
-	/* default */  final void onUnitComplete(Unit bwUnit) {
+	/* default */  final void onUnitComplete(Unit unit) {
 		
-		logger.trace("completed {} with ID {}", bwUnit.getType(), bwUnit.getID());
+		logger.trace("completed {}.", unit);
 		
-		if (bwUnit.getPlayer().getID() == player1.getID()) {
-			addToInventory(bwUnit, unitInventory1, interactionHandler.getFrameCount());
-		}
+		UnitInventory inventory;
+        if (unit instanceof PlayerUnit) {
+            inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
+        } else {
+            inventory = this.unitInventories.get(this.player1);
+        }
+        addToInventory(unit, inventory, interactionHandler.getFrameCount());
 		
 		// Once the initial 4 workers and the command centers have fired their triggers we truly start the game
-		if (!gameStarted && unitInventory1.getAllWorkers().size() == 4 && !unitInventory1.getCommandCenters().isEmpty()) {
+		if (!gameStarted && unitInventories.get(this.player1).getAllWorkers().size() == 4 && !unitInventories.get(this.player1).getCommandCenters().isEmpty()) {
 			
-			unitInventory1.getMiningWorkers().addAll(unitInventory1.getAllWorkers());
-			miningStrategy.initialize(unitInventory1.getCommandCenters(), unitInventory1.getMiningWorkers(), unitInventory1.getMineralPatches());
+			unitInventories.get(this.player1).getMineralWorkers().addAll(unitInventories.get(this.player1).getAllWorkers());
+			miningStrategy.initialize(unitInventories.get(this.player1).getCommandCenters(), unitInventories.get(this.player1).getRefineries(), unitInventories.get(this.player1).getMineralWorkers(), unitInventories.get(this.player1).getVespeneWorkers(), unitInventories.get(this.player1).getMineralPatches());
 			gameStrategy.start(player1.minerals(), player1.gas());
 			gameStarted = true;
 		}
-	}
-	
-	public void onPlayerDropped(bwapi.Player player) {
-		// do nothing
 	}
 }

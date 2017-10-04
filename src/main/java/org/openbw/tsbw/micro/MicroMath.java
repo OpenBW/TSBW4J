@@ -4,10 +4,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.openbw.tsbw.unit.MobileUnit;
-
-import bwapi.Position;
-import bwapi.Unit;
+import org.openbw.bwapi4j.Position;
+import org.openbw.bwapi4j.unit.MobileUnit;
+import org.openbw.bwapi4j.unit.Unit;
 
 public class MicroMath {
 

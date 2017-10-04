@@ -2,25 +2,20 @@ package org.openbw.tsbw.example.strategy;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.DamageEvaluator;
-import org.openbw.bwapi.InteractionHandler;
-import org.openbw.bwapi.MapDrawer;
-import org.openbw.bwapi.Player;
+import org.openbw.bwapi4j.BW;
+import org.openbw.bwapi4j.type.UnitType;
+import org.openbw.bwapi4j.unit.Barracks;
+import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.CommandCenter;
+import org.openbw.bwapi4j.unit.MobileUnit;
+import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.building.BuildingPlanner;
+import org.openbw.tsbw.building.Construction;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
-import org.openbw.tsbw.unit.Barracks;
-import org.openbw.tsbw.unit.Building;
-import org.openbw.tsbw.unit.CommandCenter;
-import org.openbw.tsbw.unit.MobileUnit;
-import org.openbw.tsbw.unit.SupplyDepot;
-import org.openbw.tsbw.unit.Worker;
-
-import bwapi.UnitType;
 
 /**
  * This is an extremely basic strategy to get you started.
@@ -46,25 +41,25 @@ public class DummyStrategy extends AbstractGameStrategy {
 	/**
 	 * Listens to events affecting my workers.
 	 */
-	private GroupListener<Worker> workerListener = new GroupListener<Worker>() {
+	private GroupListener<SCV> workerListener = new GroupListener<SCV>() {
 
 		@Override
-		public void onAdd(Worker worker) {
+		public void onAdd(SCV worker) {
 			
 			logger.info("worker {} was added.", worker);
 			
 			// let's add every new worker to the mining squad by default
-			myInventory.getMiningWorkers().add(worker);
+			myInventory.getMineralWorkers().add(worker);
 		}
 
 		@Override
-		public void onRemove(Worker worker) {
+		public void onRemove(SCV worker) {
 			
 			logger.info("worker {} was removed.", worker);
 		}
 
 		@Override
-		public void onDestroy(Worker worker) {
+		public void onDestroy(SCV worker) {
 			
 			logger.info("worker {} was destroyed.", worker);
 		}
@@ -177,14 +172,12 @@ public class DummyStrategy extends AbstractGameStrategy {
 		}
 	};
 	
-	public DummyStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
-			Player self, Player enemy, BuildingPlanner buildingPlanner,
-			DamageEvaluator damageEvaluator, InteractionHandler interactionHandler) {
+	public DummyStrategy(BW bw, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
 	
-		super(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator, interactionHandler);
+		super(bw, scoutingStrategy, buildingPlanner);
 		
-		this.myInventory = self.getUnitInventory();
-		this.enemyInventory = enemy.getUnitInventory();
+		this.myInventory = myInventory;
+		this.enemyInventory = enemyInventory;
 	}
 	
 	@Override
@@ -212,7 +205,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 		// at frame 3000 send out a single scout to explore the map.
 		// we do this by simply moving the first worker we find from the mining squad to the scouts squad.
 		if (frame == 3000) {
-			myInventory.getMiningWorkers().move(myInventory.getMiningWorkers().first(), myInventory.getScouts());
+			myInventory.getMineralWorkers().move(myInventory.getMineralWorkers().first(), myInventory.getScouts());
 		}
 				
 		// train workers until we have 16 workers.
@@ -232,16 +225,16 @@ public class DummyStrategy extends AbstractGameStrategy {
 		// build supply depots as required: if available supply is less than some threshold queue up a supply depot to be built.
 		// in this case, we make the threshold depend on the number of command centers and barracks we have.
 		int threshold = myInventory.getCommandCenters().size() * 4 + myInventory.getBarracks().size() * 4;
-		if (availableSupply + buildingPlanner.getCount(SupplyDepot.getInstance(bwMap)) * UnitType.Terran_Supply_Depot.supplyProvided() <= threshold) {
+		if (availableSupply + buildingPlanner.getCount(Construction.Terran_Supply_Depot) * UnitType.Terran_Supply_Depot.supplyProvided() <= threshold) {
 
-			buildingPlanner.queue(SupplyDepot.getInstance(bwMap));
-			availableMinerals -= SupplyDepot.getInstance(bwMap).getMineralPrice();
+			buildingPlanner.queue(Construction.Terran_Supply_Depot);
+			availableMinerals -= Construction.Terran_Supply_Depot.getMineralPrice();
 		}
 		
 		// "end-game"
 		if (availableMinerals > 250) {
 			
-			this.buildingPlanner.queue(Barracks.getInstance(bwMap));
+			this.buildingPlanner.queue(Construction.Terran_Barracks);
 		}
 	}
 

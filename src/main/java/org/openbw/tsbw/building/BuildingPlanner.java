@@ -6,17 +6,14 @@ import java.util.Queue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.openbw.bwapi4j.BWMap;
+import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
-import org.openbw.tsbw.unit.Building;
-import org.openbw.tsbw.unit.Construction;
-import org.openbw.tsbw.unit.Worker;
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.InteractionHandler;
-
-import bwapi.TilePosition;
 
 /**
  * Manages all building construction for the game.
@@ -50,7 +47,7 @@ public class BuildingPlanner  {
 			}
 			for (ConstructionProject project : queue) {
 				if (project.hasBuilt(building)) {
-					Worker worker = project.getAssignedWorker();
+					SCV worker = project.getAssignedWorker();
 					constructorSquad.move(worker, unitInventory.getAvailableWorkers());
 					project.setStatus(ConstructionProject.Status.COMPLETED);
 					queue.remove(project);
@@ -76,22 +73,22 @@ public class BuildingPlanner  {
 		}
 	};
 	
-	private GroupListener<Worker> constructorsListener = new GroupListener<Worker>() {
+	private GroupListener<SCV> constructorsListener = new GroupListener<SCV>() {
 
 		@Override
-		public void onAdd(Worker worker) {
+		public void onAdd(SCV worker) {
 			
 			// do nothing
 		}
 
 		@Override
-		public void onRemove(Worker worker) {
+		public void onRemove(SCV worker) {
 			
 			// do nothing
 		}
 
 		@Override
-		public void onDestroy(Worker unit) {
+		public void onDestroy(SCV unit) {
 			
 			// TODO plan-repair! worker was killed while constructing something
 		}
@@ -101,9 +98,9 @@ public class BuildingPlanner  {
 	private Queue<ConstructionProject> queue;
 	private Queue<ConstructionProject> completed;
 	
-	private Squad<Worker> constructorSquad = null;
+	private Squad<SCV> constructorSquad = null;
 
-	private Squad<Worker> availableWorkers = null;
+	private Squad<SCV> availableWorkers = null;
 	
 	public BuildingPlanner(UnitInventory unitInventory, InteractionHandler interactionHandler, BWMap bwMap) {
 		
@@ -119,7 +116,7 @@ public class BuildingPlanner  {
 		
 		this.queue.clear();
 		this.completed.clear();
-		this.constructorSquad = unitInventory.createSquad(Worker.class, "constructors");
+		this.constructorSquad = unitInventory.createSquad(SCV.class, "constructors");
 		this.constructorSquad.addListener(constructorsListener);
 		
 		this.availableWorkers = unitInventory.getAvailableWorkers();
@@ -128,7 +125,7 @@ public class BuildingPlanner  {
 		this.uniqueIdCounter = 0;
 	}
 	
-	public int queue(Construction construction, TilePosition constructionSite, Worker worker) {
+	public int queue(Construction construction, TilePosition constructionSite, SCV worker) {
 		
 		ConstructionProject project = new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, constructionSite);
 		project.setAssignedWorker(worker);
@@ -177,7 +174,7 @@ public class BuildingPlanner  {
 		return minerals;
 	}
 	
-	public boolean isConstructing(Worker worker) {
+	public boolean isConstructing(SCV worker) {
 		
 		return worker.isConstructing() || constructorSquad.contains(worker);
 	}
@@ -225,7 +222,7 @@ public class BuildingPlanner  {
 				} else if (project.getAssignedWorker().isStuck()) {
 					
 					logger.warn("worker {} assigned to construct {} is stuck", project.getAssignedWorker(), project.getConstruction());
-					this.constructorSquad.move(project.getAssignedWorker(), unitInventory.getMiningWorkers());
+					this.constructorSquad.move(project.getAssignedWorker(), unitInventory.getMineralWorkers());
 					project.releaseWorker();
 					project.setStatus(ConstructionProject.Status.QUEUED);
 				} else if (!project.getAssignedWorker().isMoving() && !project.getAssignedWorker().isConstructing()) {
@@ -253,7 +250,7 @@ public class BuildingPlanner  {
 					
 					// for performance reasons: estimated mining only needs to be calculated if we don't have enough minerals anyways
 					if (currentMinerals < project.getMineralPrice()) {
-						estimatedMining = project.estimateMineralsMinedDuringTravel(this.unitInventory.getMiningWorkers().size() - 1);
+						estimatedMining = project.estimateMineralsMinedDuringTravel(this.unitInventory.getMineralWorkers().size() - 1);
 					}
 					
 					// TODO estimate gas mining as well and adjust moveout accordingly
@@ -280,20 +277,21 @@ public class BuildingPlanner  {
 	private void abandonIfCriticallyWounded() {
 		for (Building building : unitInventory.getUnderConstruction()) {
 			
-			Worker worker = building.getBuildUnit(constructorSquad);
+			SCV worker = building.getBuildUnit();
 			if (worker != null && worker.getHitPoints() < 25) {
 				worker.haltConstruction();
-				unitInventory.getMiningWorkers().add(worker);
+				unitInventory.getMineralWorkers().add(worker);
 			}
 		}
 	}
 
 	private void finishAbandonedConstructions() {
+		
 		for (Building unfinished : unitInventory.getUnderConstruction()) {
-			if (unfinished.getBuildUnit(unitInventory.getAllWorkers()) == null && unitInventory.getAvailableWorkers().size() > 3) {
+			if (unfinished.getBuildUnit() == null && unitInventory.getAvailableWorkers().size() > 3) {
 				
-				Comparator<Worker> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
-				Worker worker = unitInventory.getAvailableWorkers().stream().max(comp).get();
+				Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
+				SCV worker = unitInventory.getAvailableWorkers().stream().max(comp).get();
 				
 				unitInventory.getAvailableWorkers().move(worker, this.constructorSquad);
 				this.queue.stream().filter(c -> c.getConstructionSite().equals(unfinished.getTilePosition())).findFirst().ifPresent(b -> b.setAssignedWorker(worker));
@@ -308,7 +306,7 @@ public class BuildingPlanner  {
 	 * Callback to inform the building planner that building is now being constructed.
 	 * @param building
 	 */
-	public void onConstructionStarted(Worker worker) {
+	public void onConstructionStarted(SCV worker) {
 		
 		for (ConstructionProject project : this.queue) {
 			if (worker.equals(project.getAssignedWorker())) {

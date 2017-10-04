@@ -2,11 +2,10 @@ package org.openbw.tsbw;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import bwapi.BWEventListener;
-import bwapi.Player;
-import bwapi.Position;
-import bwapi.Unit;
+import org.openbw.bwapi4j.BWEventListener;
+import org.openbw.bwapi4j.Player;
+import org.openbw.bwapi4j.Position;
+import org.openbw.bwapi4j.unit.Unit;
 
 /* default */ class BotEventListener implements BWEventListener {
 	
@@ -43,16 +42,6 @@ import bwapi.Unit;
 	public void onNukeDetect(Position nukePosition) {
 		try {
 			bot.onNukeDetect(nukePosition);
-		} catch (Exception e) {
-			logger.error(e.getMessage(), e);
-			throw e;
-		}
-	}
-
-	@Override
-	public void onPlayerDropped(Player player) {
-		try {
-			bot.onPlayerDropped(player);
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw e;

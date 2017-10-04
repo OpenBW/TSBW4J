@@ -6,24 +6,21 @@ import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.tsbw.unit.Unit;
+import org.openbw.bwapi4j.unit.Unit;
 
 public class Group<T extends Unit> extends TreeSet<T> {
 
 	private static final long serialVersionUID = 4561633085234598587L;
 	private static final Logger logger = LogManager.getLogger();
 	
-	protected String name;
-	
 	protected List<GroupListener<T>> listeners;
 	
-	/* default */ Group(String name) {
-		this.name = name;
+	/* default */ Group() {
 		this.listeners = new LinkedList<GroupListener<T>>();
 	}
 	
-	/* default */ Group(String name, List<T> units) {
-		this(name);
+	/* default */ Group(List<T> units) {
+		this();
 		this.addAll(units);
 	}
 	
@@ -37,10 +34,6 @@ public class Group<T extends Unit> extends TreeSet<T> {
 	
 	public void addListener(GroupListener<T> listener) {
 		listeners.add(listener);
-	}
-	
-	public String getName() {
-		return name;
 	}
 	
 	@Override
@@ -89,7 +82,7 @@ public class Group<T extends Unit> extends TreeSet<T> {
 	// TODO use index to speed up (replace naive implementation)
 	public T getValue(int id) {
 		for (T t : this) {
-			if (t.getID() == id) {
+			if (t.getId() == id) {
 				return t;
 			}
 		}
@@ -100,7 +93,7 @@ public class Group<T extends Unit> extends TreeSet<T> {
 	public boolean containsKey(int id) {
 		
 		for (T t : this) {
-			if (t.getID() == id) {
+			if (t.getId() == id) {
 				return true;
 			}
 		}

@@ -1,10 +1,11 @@
 package org.openbw.tsbw.strategy;
 
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.DamageEvaluator;
-import org.openbw.bwapi.InteractionHandler;
-import org.openbw.bwapi.MapDrawer;
-import org.openbw.bwapi.Player;
+import org.openbw.bwapi4j.BW;
+import org.openbw.bwapi4j.BWMap;
+import org.openbw.bwapi4j.DamageEvaluator;
+import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.MapDrawer;
+import org.openbw.bwapi4j.Player;
 import org.openbw.tsbw.building.BuildingPlanner;
 
 public abstract class AbstractGameStrategy {
@@ -18,18 +19,17 @@ public abstract class AbstractGameStrategy {
 	protected DamageEvaluator damageEvaluator;
 	protected InteractionHandler interactionHandler;
 	
-	public AbstractGameStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
-			Player player1, Player player2, BuildingPlanner buildingPlanner,
-			DamageEvaluator damageEvaluator, InteractionHandler interactionHandler) {
+	public AbstractGameStrategy(BW bw, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner) {
 		
-		this.mapDrawer = mapDrawer;
-		this.bwMap = bwMap;
-		this.scoutingStrategy = scoutingStrategy;
-		this.self = player1;
-		this.enemy = player2;
+		this.mapDrawer = bw.getMapDrawer();
+		this.damageEvaluator = bw.getDamageEvaluator();
+		this.bwMap = bw.getBWMap();
+		this.interactionHandler = bw.getInteractionHandler();
+		this.self = this.interactionHandler.self();
+		this.enemy = this.interactionHandler.enemy();
 		this.buildingPlanner = buildingPlanner;
-		this.damageEvaluator = damageEvaluator;
-		this.interactionHandler = interactionHandler;
+		this.scoutingStrategy = scoutingStrategy;
+		
 	}
 
 	/**

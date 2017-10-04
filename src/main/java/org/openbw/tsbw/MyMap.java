@@ -1,16 +1,19 @@
 package org.openbw.tsbw;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openbw.bwapi4j.Position;
+import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.util.Pair;
 
-import bwapi.Pair;
-import bwapi.Position;
-import bwapi.TilePosition;
 import bwta.BWTA;
+import bwta.BaseLocation;
 import bwta.Chokepoint;
 import bwta.Region;
 
@@ -22,7 +25,6 @@ public class MyMap {
 	private static Map<Chokepoint, Integer> chokePoints = new HashMap<Chokepoint, Integer>();
 	
 	private MyMap() {
-	
 	}
 	
 	public static void analyze() {
@@ -33,7 +35,7 @@ public class MyMap {
 		logger.info("Map data ready");
 	}
 	
-	public static Position getRegionCenter(Position position) {
+	public static Position getRegionCenter(TilePosition position) {
 		
 		Region region = BWTA.getRegion(position);
 		if (region == null) {
@@ -41,6 +43,20 @@ public class MyMap {
 		} else {
 			return region.getCenter();
 		}
+	}
+	
+	public static List<BaseLocation> getBaseLocations() {
+	    
+	    return BWTA.getBaseLocations();
+	}
+	
+	public static List<TilePosition> getBaseLocationsAsPosition() {
+	
+		List<TilePosition> locations = new ArrayList<TilePosition>();
+		for (BaseLocation baseLocation : BWTA.getBaseLocations()) {
+			locations.add(baseLocation.getTilePosition());
+		}
+		return locations;
 	}
 	
 	public static int getGroundDistance(TilePosition pos1, TilePosition pos2) {
@@ -53,7 +69,7 @@ public class MyMap {
 		return BWTA.isConnected(pos1, pos2);
 	}
 	
-	public static void sortChokePoints(TilePosition startLocation) {
+	public static void sortChokepoints(TilePosition startLocation) {
 		
 		chokePoints.clear();
 		Region startRegion = BWTA.getRegion(startLocation);
@@ -75,8 +91,28 @@ public class MyMap {
 		}
 	}
 	
+	public static List<TilePosition> getShortestPath(TilePosition start, TilePosition end) {
+	    return BWTA.getShortestPath(start, end);
+	}
+	
+	public static Region getRegion(Position position) {
+	    
+	    return BWTA.getRegion(position);
+	}
+	
+	public static Region getRegion(int x, int y) {
+	
+	    return BWTA.getRegion(x, y);
+	}
+
+	public static List<Region> getRegions() {
+	    
+	    return BWTA.getRegions();
+	}
+	
 	public static Set<Chokepoint> getChokepoints() {
-		return MyMap.chokePoints.keySet();
+		
+	    return MyMap.chokePoints.keySet();
 	}
 	
 	public static Chokepoint getBestChokepoint(Region region) {
@@ -85,7 +121,7 @@ public class MyMap {
 			return null;
 		}
 		
-		Chokepoint bestChokepoint = region.getChokepoints().get(0);
+		Chokepoint bestChokepoint = region.getChokepoints().iterator().next();
 		for (Chokepoint chokepoint : region.getChokepoints()) {
 			
 			if (getValue(chokepoint) < getValue(bestChokepoint)) {
@@ -112,6 +148,10 @@ public class MyMap {
 		} else {
 			return 99;
 		}
+	}
+
+	public static List<BaseLocation> getStartLocations() {
+		return BWTA.getStartLocations();
 	}
 
 }

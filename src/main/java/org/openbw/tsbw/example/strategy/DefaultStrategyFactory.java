@@ -1,10 +1,7 @@
 package org.openbw.tsbw.example.strategy;
 
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.DamageEvaluator;
-import org.openbw.bwapi.InteractionHandler;
-import org.openbw.bwapi.MapDrawer;
-import org.openbw.bwapi.Player;
+import org.openbw.bwapi4j.BW;
+import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.building.BuildingPlanner;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
@@ -22,16 +19,14 @@ public class DefaultStrategyFactory extends StrategyFactory {
 	}
 	
 	@Override
-	public AbstractGameStrategy getStrategy(MapDrawer mapDrawer, BWMap bwMap, ScoutingStrategy scoutingStrategy,
-			Player self, Player enemy, BuildingPlanner buildingPlanner,
-			DamageEvaluator damageEvaluator, InteractionHandler interactionHandler) {
+	public AbstractGameStrategy getStrategy(BW bw, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
 		
 		if (type == Type.BUILD_ORDER) {
 			
-			return new BuildOrderStrategy(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator, interactionHandler);
+			return new BuildOrderStrategy(bw, scoutingStrategy, buildingPlanner, myInventory, enemyInventory);
 		} else {
 			
-			return new DummyStrategy(mapDrawer, bwMap, scoutingStrategy, self, enemy, buildingPlanner, damageEvaluator, interactionHandler);
+			return new DummyStrategy(bw, scoutingStrategy, buildingPlanner, myInventory, enemyInventory);
 		}
 	}
 

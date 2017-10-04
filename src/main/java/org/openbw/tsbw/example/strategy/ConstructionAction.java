@@ -1,7 +1,7 @@
 package org.openbw.tsbw.example.strategy;
 
 import org.openbw.tsbw.building.BuildingPlanner;
-import org.openbw.tsbw.unit.Construction;
+import org.openbw.tsbw.building.Construction;
 
 public class ConstructionAction implements BoAction {
 

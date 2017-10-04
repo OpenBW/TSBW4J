@@ -1,6 +1,6 @@
 package org.openbw.tsbw;
 
-import org.openbw.tsbw.unit.Unit;
+import org.openbw.bwapi4j.unit.Unit;
 
 /**
  * Provides callback methods if a unit gets added to a group, removed from a group, or gets destroyed.

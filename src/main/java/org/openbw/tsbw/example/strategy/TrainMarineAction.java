@@ -1,7 +1,7 @@
 package org.openbw.tsbw.example.strategy;
 
+import org.openbw.bwapi4j.unit.Barracks;
 import org.openbw.tsbw.Group;
-import org.openbw.tsbw.unit.Barracks;
 
 public class TrainMarineAction implements BoAction {
 

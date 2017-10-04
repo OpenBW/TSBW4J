@@ -45,6 +45,6 @@ public class ExampleBot extends Bot {
 	@Override
 	public void onStart() {
 
-		interactionHandler.enablePlayerInteraction();
+		interactionHandler.enableUserInput();
 	}
 }

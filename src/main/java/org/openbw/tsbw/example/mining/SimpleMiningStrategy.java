@@ -7,15 +7,16 @@ import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi.InteractionHandler;
-import org.openbw.bwapi.MapDrawer;
+import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.MapDrawer;
+import org.openbw.bwapi4j.unit.CommandCenter;
+import org.openbw.bwapi4j.unit.Refinery;
+import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.strategy.MiningStrategy;
-import org.openbw.tsbw.unit.CommandCenter;
 import org.openbw.tsbw.unit.MineralPatch;
-import org.openbw.tsbw.unit.Worker;
 
 public class SimpleMiningStrategy implements MiningStrategy {
 
@@ -24,26 +25,26 @@ public class SimpleMiningStrategy implements MiningStrategy {
 	protected MapDrawer mapDrawer;
 	protected InteractionHandler interactionHandler;
 	
-	protected Squad<Worker> miningSquad;
+	protected Squad<SCV> miningSquad;
 	protected Group<CommandCenter> commandCenters;
 	protected Group<MineralPatch> mineralPatches;
 	
-	private GroupListener<Worker> miningWorkerListener = new GroupListener<Worker>() {
+	private GroupListener<SCV> miningWorkerListener = new GroupListener<SCV>() {
 
 		@Override
-		public void onAdd(Worker worker) {
+		public void onAdd(SCV worker) {
 			
 			addWorker(worker);
 		}
 
 		@Override
-		public void onRemove(Worker worker) {
+		public void onRemove(SCV worker) {
 			
 			// do nothing
 		}
 
 		@Override
-		public void onDestroy(Worker worker) {
+		public void onDestroy(SCV worker) {
 			
 			// do nothing
 		}
@@ -57,7 +58,7 @@ public class SimpleMiningStrategy implements MiningStrategy {
 	}
 
 	@Override
-	public void initialize(Group<CommandCenter> commandCenters, Squad<Worker> miningSquad, Group<MineralPatch> mineralPatches) {
+	public void initialize(Group<CommandCenter> commandCenters, Group<Refinery> refineries, Squad<SCV> miningSquad, Squad<SCV> gasSquad, Group<MineralPatch> mineralPatches) {
 		
 		this.commandCenters = commandCenters;
 		this.miningSquad = miningSquad;
@@ -78,17 +79,17 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		Iterator<MineralPatch> iterator = mineralPatches.iterator();
 		List<MineralPatch> patchesToUpdate = new ArrayList<MineralPatch>();
 		
-		for (Worker worker : this.miningSquad) {
+		for (SCV worker : this.miningSquad) {
 			if (iterator.hasNext()) {
 				MineralPatch patch = iterator.next();
-				logger.debug("mineral patch {} chosen. roundtrip time: {}", patch.getID(), patch.getRoundTripTime());
+				logger.debug("mineral patch {} chosen. roundtrip time: {}", patch.getId(), patch.getRoundTripTime());
 				gatherMinerals(worker, patch);
 				patchesToUpdate.add(patch);
 			}
 		}
 	}
 	
-	private void addWorker(Worker worker) {
+	private void addWorker(SCV worker) {
 		
 		if (mineralPatches.isEmpty()) {
 			logger.warn("Could not find suitable mineral patch!");
@@ -96,13 +97,13 @@ public class SimpleMiningStrategy implements MiningStrategy {
 			logger.warn("No command center left to return minerals to!");
 		} else {
 			MineralPatch targetPatch = mineralPatches.first();
-			logger.debug("best patch {} has roundtrip time {} and mining factor of {}", targetPatch.getID(), targetPatch.getRoundTripTime(), targetPatch.getMiningFactor());
+			logger.debug("best patch {} has roundtrip time {} and mining factor of {}", targetPatch.getId(), targetPatch.getRoundTripTime(), targetPatch.getMiningFactor());
 			
 			gatherMinerals(worker, targetPatch);
 		}
 	}
 	
-	private void gatherMinerals(Worker worker, MineralPatch targetPatch) {
+	private void gatherMinerals(SCV worker, MineralPatch targetPatch) {
 		
 		boolean shift = false;
 		if (worker.isCarryingMinerals()) {
@@ -120,7 +121,7 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		} else {
 			worker.move(targetPatch.getPosition(), shift);
 		}
-		logger.debug("assigning SCV {} to mineral patch {} with factor {}", worker.getID(), targetPatch.getID(), targetPatch.getMiningFactor());
+		logger.debug("assigning {} to {} with factor {}", worker, targetPatch, targetPatch.getMiningFactor());
 	}
 
 	/**
@@ -141,7 +142,7 @@ public class SimpleMiningStrategy implements MiningStrategy {
 	
 	private void processIdleMiningWorkers() {
 		
-		for (Worker worker : this.miningSquad) {
+		for (SCV worker : this.miningSquad) {
 			if (worker.isIdle()) {
 				addWorker(worker);
 			}

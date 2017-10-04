@@ -1,21 +1,20 @@
-package org.openbw.tsbw.unit;
+package org.openbw.tsbw.building;
 
 import java.util.Queue;
 
-import org.openbw.bwapi.BWMap;
+import org.openbw.bwapi4j.BWMap;
+import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.type.UnitType;
+import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.UnitInventory;
-import org.openbw.tsbw.building.ConstructionProject;
 
-import bwapi.Region;
-import bwapi.TilePosition;
-import bwapi.UnitType;
 
-public class ConstructionProvider implements Construction {
+public class DefaultConstruction {
 	
 	protected UnitType unitType;
 	protected BWMap bwMap;
 	
-	public ConstructionProvider(UnitType unitType, BWMap bwMap) {
+	public DefaultConstruction(UnitType unitType, BWMap bwMap) {
 		this.unitType = unitType;
 		this.bwMap = bwMap;
 	}
@@ -38,22 +37,14 @@ public class ConstructionProvider implements Construction {
 		return false;
 	}
 
-	@Override
-	public TilePosition getBuildTile(Worker builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
+	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
 		
-		Region region;
-		if (unitInventory.getMain() == null) {
-			region = bwMap.getRegionAt(unitInventory.getAvailableWorkers().first().getPosition());
-		} else {
-			region = bwMap.getRegionAt(unitInventory.getMain().getPosition());
-		}
-		TilePosition position = region.getCenter().toTilePosition();
+		TilePosition position = unitInventory.getMain().getInitialTilePosition();
 		
 		return getBuildTile(builder, position, unitInventory, projects);
 	}
 
-	@Override
-	public TilePosition getBuildTile(Worker builder, TilePosition aroundHere, UnitInventory unitInventory,
+	public TilePosition getBuildTile(SCV builder, TilePosition aroundHere, UnitInventory unitInventory,
 			Queue<ConstructionProject> projects) {
 		
 		TilePosition nextPosition = aroundHere;
@@ -74,31 +65,6 @@ public class ConstructionProvider implements Construction {
 		return nextPosition;
 	}
 
-	@Override
-	public int getMineralPrice() {
-		return unitType.mineralPrice();
-	}
-
-	@Override
-	public int getGasPrice() {
-		return unitType.gasPrice();
-	}
-
-	@Override
-	public int tileHeight() {
-		return unitType.tileHeight();
-	}
-
-	@Override
-	public int tileWidth() {
-		return unitType.tileWidth();
-	}
-
-	@Override
-	public boolean build(Worker worker, TilePosition constructionSite) {
-		return worker.build(this.unitType, constructionSite);
-	}
-	
 	@Override
 	public String toString() {
 		return this.unitType + " construction";

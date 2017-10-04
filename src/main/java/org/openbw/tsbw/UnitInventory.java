@@ -1,91 +1,79 @@
 package org.openbw.tsbw;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.tsbw.unit.Barracks;
-import org.openbw.tsbw.unit.Building;
-import org.openbw.tsbw.unit.Bunker;
-import org.openbw.tsbw.unit.CommandCenter;
-import org.openbw.tsbw.unit.Geyser;
+import org.openbw.bwapi4j.Position;
+import org.openbw.bwapi4j.type.WeaponType;
+import org.openbw.bwapi4j.unit.Barracks;
+import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.CommandCenter;
+import org.openbw.bwapi4j.unit.Factory;
+import org.openbw.bwapi4j.unit.MobileUnit;
+import org.openbw.bwapi4j.unit.PlayerUnit;
+import org.openbw.bwapi4j.unit.Refinery;
+import org.openbw.bwapi4j.unit.SCV;
+import org.openbw.bwapi4j.unit.SupplyDepot;
+import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.unit.MineralPatch;
-import org.openbw.tsbw.unit.MobileUnit;
-import org.openbw.tsbw.unit.PlayerUnit;
-import org.openbw.tsbw.unit.SupplyDepot;
-import org.openbw.tsbw.unit.Unit;
-import org.openbw.tsbw.unit.Worker;
-
-import bwapi.Position;
-import bwapi.UnitType;
-import bwapi.WeaponType;
+import org.openbw.tsbw.unit.VespeneGeyser;
 
 public class UnitInventory {
 
 	private static final Logger logger = LogManager.getLogger();
 	
-	private Group<MineralPatch> mineralPatches;
-	private Group<Geyser> geysers;
-	
-	private Squad<MobileUnit> allArmyUnits;
-	private Squad<Worker> allWorkers;
-	
 	private Group<PlayerUnit> destroyedUnits;
-	
-	private Group<Building> buildings;
-	private Group<CommandCenter> commandCenters;
-	private Group<Barracks> barracks;
-	
-	private Squad<Worker> miningWorkers;
 	private Squad<MobileUnit> scouts;
+	private Squad<SCV> mineralWorkers;
+	private Squad<SCV> vespeneWorkers;
+	private Group<Building> underConstruction;
 	private CommandCenter main = null;
 	
-	private List<Building> underConstruction;
+	private Group<MineralPatch> allMineralPatches;
+	private Group<VespeneGeyser> allVespeneGeysers;
+	private Collection<PlayerUnit> allUnits;
+	
 	private List<Group<? extends PlayerUnit>> groups;
 	
 	public UnitInventory() {
 		
-		this.mineralPatches = new Group<MineralPatch>("mineral patches");
-		this.geysers = new Group<Geyser>("geysers");
-		this.buildings = new Group<Building>("buildings");
-		this.commandCenters = new Group<CommandCenter>("command centers");
-		this.barracks = new Group<Barracks>("barracks");
-		this.allArmyUnits = new Squad<MobileUnit>("army units");
-		this.allWorkers = new Squad<Worker>("workers");
-		this.miningWorkers = new Squad<Worker>("mining workers");
+	    this.allUnits = new HashSet<PlayerUnit>();
+		this.destroyedUnits = new Group<PlayerUnit>();
 		this.scouts = new Squad<MobileUnit>("scouts");
-		this.destroyedUnits = new Group<PlayerUnit>("destroyed units");
-		this.underConstruction = new ArrayList<Building>();
+		this.mineralWorkers = new Squad<SCV>("mineral mining workers");
+		this.vespeneWorkers = new Squad<SCV>("vespene mining workers");
+		this.underConstruction = new Group<Building>();
+		
+		this.allMineralPatches = new Group<MineralPatch>();
+		this.allVespeneGeysers = new Group<VespeneGeyser>();
 		
 		this.groups = new ArrayList<Group<? extends PlayerUnit>>();
 	}
 	
 	public void initialize() {
 		
+	    this.allUnits.clear();
 		this.groups.clear();
 		
-		this.mineralPatches.clear();
-		this.geysers.clear();
-		this.buildings.clear();
-		this.groups.add(buildings);
-		this.commandCenters.clear();
-		this.groups.add(commandCenters);
-		this.barracks.clear();
-		this.groups.add(barracks);
-		this.allArmyUnits.clear();
-		this.groups.add(allArmyUnits);
-		this.allWorkers.clear();
-		this.groups.add(allWorkers);
-		this.miningWorkers.clear();
-		this.groups.add(miningWorkers);
+		this.destroyedUnits.clear();
+		this.groups.add(destroyedUnits);
 		this.scouts.clear();
 		this.groups.add(scouts);
-		this.destroyedUnits.clear();
+		this.mineralWorkers.clear();
+		this.groups.add(mineralWorkers);
+		this.vespeneWorkers.clear();
+		this.groups.add(vespeneWorkers);
 		this.underConstruction.clear();
+		this.groups.add(underConstruction);
+		
+		this.allMineralPatches.clear();
+		this.allVespeneGeysers.clear();
+		
 		this.main = null;
 	}
 	
@@ -97,123 +85,49 @@ public class UnitInventory {
 		this.main = commandCenter;
 	}
 	
-	public void register(Geyser geyser) {
-		this.geysers.add(geyser);
-	}
-	
-	public void register(MineralPatch mineralPatch) {
-		this.mineralPatches.add(mineralPatch);
-	}
-	
-	public void register(Bunker bunker) {
-		
-		if (bunker.isCompleted()) {
-			this.underConstruction.remove(bunker);
-			this.buildings.add(bunker);
-		} else {
-			this.underConstruction.add(bunker);
-		}
-	}
-
-	public void register(Barracks barracks) {
-		
-		if (barracks.isCompleted()) {
-			this.underConstruction.remove(barracks);
-			this.barracks.add(barracks);
-			this.buildings.add(barracks);
-		} else {
-			this.underConstruction.add(barracks);
-		}
-	}
-	
-	public void register(CommandCenter commandCenter) {
-		
-		if (commandCenter.isCompleted()) {
-			if (main == null) {
-				main = commandCenter;
-			}
-			this.underConstruction.remove(commandCenter);
-			this.commandCenters.add(commandCenter);
-			this.buildings.add(commandCenter);
-		} else {
-			this.underConstruction.add(commandCenter);
-		} 
-	}
-	
-	public void register(Building building) {
-		
-		if (building.isCompleted()) {
-			this.underConstruction.remove(building);
-			this.buildings.add(building);
-		} else {
-			this.underConstruction.add(building);
-		}
-	}
-	
-	public void register(Worker worker) {
-		this.allWorkers.add(worker);
-	}
-	
-	public void register(MobileUnit armyUnit) {
-		this.allArmyUnits.add(armyUnit);
-	}
-	
-	public <T extends MobileUnit> Squad<T> createSquad(String name, List<T> units) {
-		
-		Squad<T> squad = new Squad<T>(name, units);
-		this.groups.add(squad);
-		logger.debug("created squad {}", name);
-		return squad;
-	}
-	
-	public <T extends MobileUnit> Squad<T> createSquad(Class<T> t, String name) {
-		
-		Squad<T> squad = new Squad<T>(name);
-		this.groups.add(squad);
-		logger.debug("created empty squad {}", name);
-		return squad;
-	}
-	
 	public Group<MineralPatch> getMineralPatches() {
-		return this.mineralPatches;
+		return this.allMineralPatches;
 	}
 	
-	public Group<Geyser> getGeysers() {
-		return this.geysers;
+	public Group<VespeneGeyser> getVespeneGeysers() {
+		return this.allVespeneGeysers;
+	}
+	
+	public Group<Refinery> getRefineries() {
+		return this.allUnits.stream().filter(u -> u instanceof Refinery).map(u -> (Refinery)u).collect(Util.toGroup());
 	}
 	
 	public Group<Building> getBuildings() {
-		return this.buildings;
+		return this.allUnits.stream().filter(u -> u instanceof Building).map(u -> (Building)u).collect(Util.toGroup());
 	}
 	
-	public List<Building> getUnderConstruction() {
+	public Group<Building> getUnderConstruction() {
 		return this.underConstruction;
 	}
 	
-	public Squad<Worker> getAllWorkers() {
-		return this.allWorkers;
+	public Squad<SCV> getAllWorkers() {
+		return this.allUnits.stream().filter(u -> u instanceof SCV).map(u -> (SCV)u).collect(Util.toSquad());
 	}
 	
 	public Squad<MobileUnit> getArmyUnits() {
-		return this.allArmyUnits;
+		return this.allUnits.stream().filter(u -> u instanceof MobileUnit && !(u instanceof SCV)).map(u -> (MobileUnit)u).collect(Util.toSquad());
 	}
 	
 	public Squad<MobileUnit> getScouts() {
 		return this.scouts;
 	}
 	
-	public Squad<Worker> getMiningWorkers() {
-		return this.miningWorkers;
+	public Squad<SCV> getMineralWorkers() {
+		return this.mineralWorkers;
 	}
 	
-	public Set<MobileUnit> getAllMobileUnits() {
+	public Squad<SCV> getVespeneWorkers() {
+		return this.vespeneWorkers;
+	}
+	
+	public List<MobileUnit> getAllMobileUnits() {
 		
-		Set<MobileUnit> units = new HashSet<MobileUnit>();
-		units.addAll(allWorkers);
-		units.addAll(allArmyUnits);
-		units.addAll(destroyedUnits.stream().filter(u -> u instanceof MobileUnit).map(u -> (MobileUnit)u).collect(Collectors.toList()));
-		
-		return units;
+		return this.allUnits.stream().filter(u -> u instanceof MobileUnit).map(u -> (MobileUnit)u).collect(Collectors.toList());
 	}
 	
 	/**
@@ -224,7 +138,7 @@ public class UnitInventory {
 	public List<MobileUnit> getMobileUnitsInRange(Squad<? extends PlayerUnit> squad) {
 		
 		List<MobileUnit> unitsInRange = new ArrayList<MobileUnit>();
-		for (MobileUnit armyUnit : allArmyUnits) {
+		for (MobileUnit armyUnit : this.getAllMobileUnits()) {
 			if (armyUnit.exists()) {
 				for (PlayerUnit squadUnit : squad) {
 					int range = 0;
@@ -235,16 +149,6 @@ public class UnitInventory {
 					}
 					if (armyUnit.getDistance(squadUnit) <= range) {
 						unitsInRange.add(armyUnit);
-						break;
-					}
-				}
-			}
-		}
-		for (Worker workerUnit : allWorkers) {
-			if (workerUnit.exists()) {
-				for (PlayerUnit squadUnit : squad) {
-					if (workerUnit.getDistance(squadUnit) <= 160) {
-						unitsInRange.add(workerUnit);
 						break;
 					}
 				}
@@ -261,11 +165,7 @@ public class UnitInventory {
 	 */
 	public List<MobileUnit> getMobileUnitsInRadius(Position position, int radius) {
 		
-		List<MobileUnit> allMobileUnits = new ArrayList<MobileUnit>();
-		allMobileUnits.addAll(allArmyUnits);
-		allMobileUnits.addAll(allWorkers);
-		
-		return allMobileUnits.parallelStream().filter(t -> position.getDistance(t.getPosition()) <= radius).collect(Collectors.toList());
+		return this.allUnits.parallelStream().filter(t -> t instanceof MobileUnit && position.getDistance(t.getPosition()) <= radius).map(t -> (MobileUnit)t).collect(Collectors.toList());
 	}
 	
 	/**
@@ -280,8 +180,8 @@ public class UnitInventory {
 	}
 	
 	// TODO For now just assume that mining workers are always available. later maybe give the developer a way to choose behavior.
-	public Squad<Worker> getAvailableWorkers() {
-		return miningWorkers;
+	public Squad<SCV> getAvailableWorkers() {
+		return this.mineralWorkers;
 	}
 
 	public Group<PlayerUnit> getDestroyedUnits() {
@@ -289,108 +189,64 @@ public class UnitInventory {
 	}
 
 	public Group<CommandCenter> getCommandCenters() {
-		return this.commandCenters;
+		
+		return this.allUnits.stream().filter(u -> u instanceof CommandCenter).map(u -> (CommandCenter)u).collect(Util.toGroup());
 	}
 	
 	public Group<Barracks> getBarracks() {
-		return this.barracks;
+		
+		return this.allUnits.stream().filter(u -> u instanceof Barracks).map(u -> (Barracks)u).collect(Util.toGroup());
 	}
 	
-	public void onUnitDestroy(bwapi.Unit bwUnit, int frameCount) {
+	public Group<Factory> getFactories() {
 		
-		logger.trace("{} got destroyed", bwUnit);
-		if (bwUnit.getType().isMineralField()) {
-			for (MineralPatch patch : this.mineralPatches) {
-				if (patch.getID() == bwUnit.getID()) {
-					patch.update(frameCount);
-					this.mineralPatches.remove(patch);
-					break;
-				}
+		return this.allUnits.stream().filter(u -> u instanceof Factory).map(u -> (Factory)u).collect(Util.toGroup());
+	}
+	
+	public void register(PlayerUnit unit) {
+		
+		if (unit instanceof Building) {
+			if (unit.isCompleted()) {
+				this.underConstruction.remove(unit);
+				this.allUnits.add(unit);
+			} else {
+				this.underConstruction.add((Building)unit);
 			}
 		} else {
-			PlayerUnit unitToRemove = null;
-			for (Group<? extends PlayerUnit> group : this.groups) {
-				PlayerUnit unit = group.getValue(bwUnit.getID());
-				if (unit != null) {
-					group.remove(unit);
-					unitToRemove = unit;
-				}
-			}
-			if (unitToRemove != null) {
-				if (unitToRemove.equals(this.main)) {
-					this.main = null;
-				}
-				this.destroyedUnits.add(unitToRemove);
-			}
+			this.allUnits.add(unit);
 		}
 	}
 	
-	public boolean update(bwapi.Unit bwUnit, int frameCount) {
-		
-		if (bwUnit.getType().isWorker()) {
-			for (Worker worker : this.allWorkers) {
-				if (worker.getID() == bwUnit.getID()) {
-					worker.update(frameCount);
-					worker.update(bwUnit.getPosition(), bwUnit.getHitPoints());
-					return true;
-				}
-			}
-		} else if (bwUnit.getType().isMineralField()) {
-			for (MineralPatch patch : this.mineralPatches) {
-				if (patch.getID() == bwUnit.getID()) {
-					patch.update(frameCount, bwUnit.getResources());
-					return true;
-				}
-			}
-		} else if (bwUnit.getType().equals(UnitType.Resource_Vespene_Geyser)) {
-			for (Geyser geyser : this.geysers) {
-				if (geyser.getID() == bwUnit.getID()) {
-					
-					// if unit was not a geyser but is now, it has morphed. remove it return false to add as a gesyer again
-					if (geyser.hasMorphed()) {
-						this.geysers.remove(geyser);
-						return false;
-					} else {
-						geyser.update(frameCount, bwUnit.getResources());
-						return true;
-					}
-				}
-			}
-		} else if (bwUnit.getType().isBuilding() || bwUnit.getType().isRefinery()) {
-			for (Building building : this.buildings) {
-				if (building.getID() == bwUnit.getID()) {
-					
-					// if a building is not the same type as it was before, it has morphed. remove it and return false to add the new building
-					if (building.hasMorphed()) {
-						if (bwUnit.getType().isRefinery()) {
-							geysers.remove(geysers.getValue(bwUnit.getID()));
-						} else {
-							buildings.remove(building);
-						}
-						return false;
-					} else {
-						building.update(frameCount);
-						building.update(bwUnit.getPosition(), bwUnit.getHitPoints());
-						return true;
-					}
-				}
-			}
-		} else {
-			for (MobileUnit armyUnit : this.allArmyUnits) {
-				if (armyUnit.getID() == bwUnit.getID()) {
-					armyUnit.update(frameCount);
-					armyUnit.update(bwUnit.getPosition(), bwUnit.getHitPoints());
-					return true;
-				}
-			}
-		}
-		return false;
+	public void register(VespeneGeyser geyser) {
+		this.allVespeneGeysers.add(geyser);
 	}
-
+	
+	public void register(MineralPatch patch) {
+		this.allMineralPatches.add(patch);
+	}
+	
+	public void onUnitDestroy(MineralPatch patch, int frameCount) {
+		
+		logger.trace("{} got destroyed", patch);
+		this.allMineralPatches.remove(patch);
+	}
+	
+	public void onUnitDestroy(PlayerUnit unit, int frameCount) {
+		
+		logger.trace("{} got destroyed", unit);
+		for (Group<? extends PlayerUnit> group : this.groups) {
+			group.remove(unit);
+		}
+		if (unit.equals(this.main)) {
+			this.main = null;
+		}
+		this.destroyedUnits.add(unit);
+	}
+	
 	public int getSupplyUsed() {
 		
-		int supply = this.allWorkers.size();
-		for (MobileUnit unit : this.allArmyUnits) {
+		int supply = 0;
+		for (MobileUnit unit : this.getAllMobileUnits()) {
 			supply += unit.getSupplyRequired();
 		}
 		return supply;
@@ -399,7 +255,7 @@ public class UnitInventory {
 	public int getSupplyTotal() {
 		
 		int supply =  0;
-		for (Building building : this.buildings) {
+		for (Building building : this.getBuildings()) {
 			if (building instanceof CommandCenter) {
 				supply += 10;
 			}
@@ -408,5 +264,18 @@ public class UnitInventory {
 			}
 		}
 		return supply;
+	}
+
+	public <T extends MobileUnit> Squad<T> createSquad(Class<T> t, String name) {
+		
+		Squad<T> squad = new Squad<T>(name);
+		this.groups.add(squad);
+		logger.debug("created empty squad {}", name);
+		return squad;
+	}
+
+	public boolean update(Unit bwUnit, int timeSpotted) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 }

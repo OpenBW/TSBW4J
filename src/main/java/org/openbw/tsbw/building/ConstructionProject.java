@@ -5,19 +5,17 @@ import java.util.Queue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.openbw.bwapi4j.BWMap;
+import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MyMap;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.analysis.PPF2;
-import org.openbw.tsbw.unit.Building;
-import org.openbw.tsbw.unit.Construction;
-import org.openbw.tsbw.unit.Worker;
-import org.openbw.bwapi.BWMap;
-import org.openbw.bwapi.InteractionHandler;
 
-import bwapi.TilePosition;
 
 public class ConstructionProject {
 
@@ -28,7 +26,7 @@ public class ConstructionProject {
 	private int id;
 	private InteractionHandler interactionHandler;
 	private Status status;
-	private Worker assignedWorker = null;
+	private SCV assignedWorker = null;
 	private TilePosition constructionSite = null;
 	
 	private Construction construction;
@@ -70,7 +68,7 @@ public class ConstructionProject {
 		return this.assignedWorker != null;
 	}
 	
-	/* default */ Worker getAssignedWorker() {
+	/* default */ SCV getAssignedWorker() {
 		return this.assignedWorker;
 	}
 	
@@ -82,7 +80,7 @@ public class ConstructionProject {
 		this.constructionSite = null;
 	}
 	
-	/* default */ void setAssignedWorker(Worker worker) {
+	/* default */ void setAssignedWorker(SCV worker) {
 		this.assignedWorker = worker;
 	}
 	
@@ -91,14 +89,14 @@ public class ConstructionProject {
 	 * @param constructionSite
 	 * @return suitable builder
 	 */
-	/* default */ Worker findSuitableWorker(Squad<Worker> workerSquad) {
+	/* default */ SCV findSuitableWorker(Squad<SCV> workerSquad) {
 		
 		double distance = Double.MAX_VALUE;
-		Worker builder = null;
+		SCV builder = null;
 		
 		if (hasConstructionSite()) {
 		
-			for (Worker worker : workerSquad) {
+			for (SCV worker : workerSquad) {
 				double currentDistance = MyMap.getGroundDistance(worker.getTilePosition(), constructionSite);
 				if (currentDistance < distance) {
 					distance = currentDistance;
@@ -112,7 +110,7 @@ public class ConstructionProject {
 	
 	/* default */ boolean build() {
 		
-		boolean success = this.construction.build(this.assignedWorker, this.constructionSite);
+		boolean success = this.assignedWorker.build(this.constructionSite.toPosition(), this.construction.getType());
 		if (!success) {
 			logger.warn("Could not build {} at {}: {}", this.construction, this.constructionSite, interactionHandler.getLastError());
 		}
@@ -124,7 +122,7 @@ public class ConstructionProject {
 		if (this.assignedWorker == null || constructionSite == null) {
 			return false;
 		} else {
-			logger.debug("Moving worker {} to {} to build {}...", this.assignedWorker.getID(), this.constructionSite, this.construction);
+			logger.debug("Moving {} to {} to build {}...", this.assignedWorker, this.constructionSite, this.construction);
 			return this.assignedWorker.move(constructionSite.toPosition());
 		}
 	}

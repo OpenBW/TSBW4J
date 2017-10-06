@@ -155,6 +155,6 @@ public class SimpleMiningStrategy implements MiningStrategy {
 	@Override
 	public void run(int frame) {
 		
-		processIdleMiningWorkers();
+		// processIdleMiningWorkers();
 	}
 }

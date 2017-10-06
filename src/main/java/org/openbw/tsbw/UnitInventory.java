@@ -31,7 +31,12 @@ public class UnitInventory {
 	private Squad<MobileUnit> scouts;
 	private Squad<SCV> mineralWorkers;
 	private Squad<SCV> vespeneWorkers;
+	
+	private Squad<SCV> allWorkers;
+	private Squad<MobileUnit> allArmy;
+	private Group<Building> allBuildings;
 	private Group<Building> underConstruction;
+	
 	private CommandCenter main = null;
 	
 	private Group<MineralPatch> allMineralPatches;
@@ -47,6 +52,10 @@ public class UnitInventory {
 		this.scouts = new Squad<MobileUnit>("scouts");
 		this.mineralWorkers = new Squad<SCV>("mineral mining workers");
 		this.vespeneWorkers = new Squad<SCV>("vespene mining workers");
+		
+		this.allWorkers = new Squad<SCV>();
+		this.allArmy = new Squad<MobileUnit>();
+		this.allBuildings = new Group<Building>();
 		this.underConstruction = new Group<Building>();
 		
 		this.allMineralPatches = new Group<MineralPatch>();
@@ -68,6 +77,12 @@ public class UnitInventory {
 		this.groups.add(mineralWorkers);
 		this.vespeneWorkers.clear();
 		this.groups.add(vespeneWorkers);
+		this.allWorkers.clear();
+		this.groups.add(allWorkers);
+		this.allArmy.clear();
+		this.groups.add(allArmy);
+		this.allBuildings.clear();
+		this.groups.add(allBuildings);
 		this.underConstruction.clear();
 		this.groups.add(underConstruction);
 		
@@ -98,7 +113,7 @@ public class UnitInventory {
 	}
 	
 	public Group<Building> getBuildings() {
-		return this.allUnits.stream().filter(u -> u instanceof Building).map(u -> (Building)u).collect(Util.toGroup());
+		return this.allBuildings;
 	}
 	
 	public Group<Building> getUnderConstruction() {
@@ -106,11 +121,11 @@ public class UnitInventory {
 	}
 	
 	public Squad<SCV> getAllWorkers() {
-		return this.allUnits.stream().filter(u -> u instanceof SCV).map(u -> (SCV)u).collect(Util.toSquad());
+		return this.allWorkers;
 	}
 	
 	public Squad<MobileUnit> getArmyUnits() {
-		return this.allUnits.stream().filter(u -> u instanceof MobileUnit && !(u instanceof SCV)).map(u -> (MobileUnit)u).collect(Util.toSquad());
+		return this.allArmy;
 	}
 	
 	public Squad<MobileUnit> getScouts() {
@@ -209,6 +224,7 @@ public class UnitInventory {
 			if (unit.isCompleted()) {
 				this.underConstruction.remove(unit);
 				this.allUnits.add(unit);
+				this.allBuildings.add((Building)unit);
 				if (this.main == null && unit instanceof CommandCenter) {
 					this.main = (CommandCenter)unit;
 				}
@@ -216,9 +232,14 @@ public class UnitInventory {
 				this.underConstruction.add((Building)unit);
 			}
 		} else {
+			if (!unit.isCompleted()) {
+				logger.error("not allowed.");
+			}
 			this.allUnits.add(unit);
 			if (unit instanceof SCV) {
-				this.mineralWorkers.add((SCV) unit);
+				this.allWorkers.add((SCV) unit);
+			} else {
+				this.allArmy.add((MobileUnit)unit);
 			}
 		}
 	}

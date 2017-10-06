@@ -111,7 +111,7 @@ public abstract class Bot {
 		this.player1 = this.interactionHandler.self();
 		this.player2 = this.interactionHandler.enemy();
 		
-		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.interactionHandler, this.mapAnalyzer);
+		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.interactionHandler, this.mapDrawer, this.mapAnalyzer);
 		this.buildingPlanner.initialize();
 		
 		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
@@ -248,14 +248,15 @@ public abstract class Bot {
 	
 	/* default */ final void onUnitDiscover(Unit unit) {
 		
-		logger.trace("onDiscover: discovered {}.", unit);
-		UnitInventory inventory;
-		if (unit instanceof PlayerUnit) {
-		    inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
-		} else {
-		    inventory = this.unitInventories.get(this.player1);
-		}
-		addToInventory(unit, inventory, interactionHandler.getFrameCount());
+		// TODO handle (enemy) units that are discovered
+//		logger.trace("onDiscover: discovered {}.", unit);
+//		UnitInventory inventory;
+//		if (unit instanceof PlayerUnit) {
+//		    inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
+//		} else {
+//		    inventory = this.unitInventories.get(this.player1);
+//		}
+//		addToInventory(unit, inventory, interactionHandler.getFrameCount());
 	}
 	
 	public void onUnitEvade(Unit unit) {

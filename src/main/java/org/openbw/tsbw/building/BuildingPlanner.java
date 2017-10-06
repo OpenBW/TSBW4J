@@ -7,7 +7,9 @@ import java.util.Queue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
@@ -35,6 +37,7 @@ public class BuildingPlanner  {
 	
 	private UnitInventory unitInventory;
 	private InteractionHandler interactionHandler;
+	private MapDrawer mapDrawer;
 	private MapAnalyzer mapAnalyzer;
 	private int uniqueIdCounter;
 	
@@ -102,11 +105,12 @@ public class BuildingPlanner  {
 
 	private Squad<SCV> availableWorkers = null;
 	
-	public BuildingPlanner(UnitInventory unitInventory, InteractionHandler interactionHandler, MapAnalyzer mapAnalyzer) {
+	public BuildingPlanner(UnitInventory unitInventory, InteractionHandler interactionHandler, MapDrawer mapDrawer, MapAnalyzer mapAnalyzer) {
 		
 		this.unitInventory = unitInventory;
 		
 		this.interactionHandler = interactionHandler;
+		this.mapDrawer = mapDrawer;
 		this.mapAnalyzer = mapAnalyzer;
 		this.queue = new LinkedList<ConstructionProject>();
 		this.completed = new LinkedList<ConstructionProject>();
@@ -201,6 +205,13 @@ public class BuildingPlanner  {
 		abandonIfCriticallyWounded();
 		
 		for (ConstructionProject project : this.queue) {
+			
+			TilePosition constructionSite = project.getConstructionSite();
+			if (constructionSite != null) {
+				logger.trace("drawing {} {} {} {}.", constructionSite.getX() * 32, constructionSite.getY() * 32, constructionSite.getX() * 32 + project.getConstruction().tileWidth() * 32, constructionSite.getY() * 32 + project.getConstruction().tileHeight() * 32);
+				mapDrawer.drawBoxMap(constructionSite.getX() * 32, constructionSite.getY() * 32, constructionSite.getX() * 32 + project.getConstruction().tileWidth() * 32, constructionSite.getY() * 32 + project.getConstruction().tileHeight() * 32, Color.WHITE);
+			}
+			
 			if (project.getStatus() == ConstructionProject.Status.ABOUT_TO_CONSTRUCT) {
 				
 				if (!project.getAssignedWorker().isConstructing() && currentMinerals >= project.getMineralPrice() 

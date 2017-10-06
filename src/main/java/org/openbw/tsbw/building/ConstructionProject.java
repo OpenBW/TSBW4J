@@ -113,8 +113,10 @@ public class ConstructionProject {
 	
 	/* default */ boolean build() {
 		
-		boolean success = this.assignedWorker.build(this.constructionSite.toPosition(), this.construction.getType());
-		if (!success) {
+		boolean success = this.assignedWorker.build(this.constructionSite, this.construction.getType());
+		if (success) {
+			logger.trace("build command successful for {} at {}.", this.construction, this.constructionSite);
+		} else {
 			logger.warn("Could not build {} at {}: {}", this.construction, this.constructionSite, interactionHandler.getLastError());
 		}
 		return success;

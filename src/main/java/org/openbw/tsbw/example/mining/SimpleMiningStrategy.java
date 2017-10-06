@@ -14,6 +14,7 @@ import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.strategy.MiningStrategy;
 import org.openbw.tsbw.unit.MineralPatch;
@@ -23,6 +24,7 @@ public class SimpleMiningStrategy implements MiningStrategy {
 	private static final Logger logger = LogManager.getLogger();
 	
 	protected MapDrawer mapDrawer;
+	protected MapAnalyzer mapAnalyzer;
 	protected InteractionHandler interactionHandler;
 	
 	protected Squad<SCV> miningSquad;
@@ -51,8 +53,9 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		
 	};
 	
-	public SimpleMiningStrategy(MapDrawer mapDrawer, InteractionHandler interactionHandler) {
+	public SimpleMiningStrategy(MapAnalyzer mapAnalyzer, MapDrawer mapDrawer, InteractionHandler interactionHandler) {
 		
+		this.mapAnalyzer = mapAnalyzer;
 		this.mapDrawer = mapDrawer;
 		this.interactionHandler = interactionHandler;
 	}
@@ -133,7 +136,7 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		
 		TreeSet<MineralPatch> patchesToReSort = new TreeSet<MineralPatch>();
 		for(MineralPatch patch : mineralPatches) {
-			patch.updateDistance(commandCenter, true);
+			patch.updateDistance(this.mapAnalyzer, commandCenter, true);
 			patchesToReSort.add(patch);
 		}
 		mineralPatches.clear();

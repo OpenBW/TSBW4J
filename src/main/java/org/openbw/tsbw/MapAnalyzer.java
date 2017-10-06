@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openbw.bwapi4j.BWMap;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.util.Pair;
@@ -18,26 +19,35 @@ import bwta.Chokepoint;
 import bwta.Region;
 
 // TODO un-static this
-public class MyMap {
+public class MapAnalyzer {
 
 	private static final Logger logger = LogManager.getLogger();
 
-	private static Map<Chokepoint, Integer> chokePoints = new HashMap<Chokepoint, Integer>();
+	private BWMap bwMap;
+	private BWTA bwta;
+	private Map<Chokepoint, Integer> chokePoints = new HashMap<Chokepoint, Integer>();
 	
-	private MyMap() {
+	public MapAnalyzer(BWMap bwMap, BWTA bwta) {
+		
+		this.bwMap = bwMap;
+		this.bwta = bwta;
 	}
 	
-	public static void analyze() {
+	public BWMap getBWMap() {
+		
+		return this.bwMap;
+	}
+	
+	public void analyze() {
 		
 		logger.info("Analyzing map...");
-		BWTA.readMap();
-		BWTA.analyze();
+		bwta.analyze();
 		logger.info("Map data ready");
 	}
 	
-	public static Position getRegionCenter(TilePosition position) {
+	public Position getRegionCenter(TilePosition position) {
 		
-		Region region = BWTA.getRegion(position);
+		Region region = bwta.getRegion(position);
 		if (region == null) {
 			return null;
 		} else {
@@ -45,38 +55,38 @@ public class MyMap {
 		}
 	}
 	
-	public static List<BaseLocation> getBaseLocations() {
+	public List<BaseLocation> getBaseLocations() {
 	    
-	    return BWTA.getBaseLocations();
+	    return bwta.getBaseLocations();
 	}
 	
-	public static List<TilePosition> getBaseLocationsAsPosition() {
+	public List<TilePosition> getBaseLocationsAsPosition() {
 	
 		List<TilePosition> locations = new ArrayList<TilePosition>();
-		for (BaseLocation baseLocation : BWTA.getBaseLocations()) {
+		for (BaseLocation baseLocation : bwta.getBaseLocations()) {
 			locations.add(baseLocation.getTilePosition());
 		}
 		return locations;
 	}
 	
-	public static int getGroundDistance(TilePosition pos1, TilePosition pos2) {
+	public int getGroundDistance(TilePosition pos1, TilePosition pos2) {
 		
-		return (int)BWTA.getGroundDistance(pos1, pos2);
+		return (int)bwta.getGroundDistance(pos1, pos2);
 	}
 	
-	public static boolean isConnected(TilePosition pos1, TilePosition pos2) {
+	public boolean isConnected(TilePosition pos1, TilePosition pos2) {
 		
-		return BWTA.isConnected(pos1, pos2);
+		return bwta.isConnected(pos1, pos2);
 	}
 	
-	public static void sortChokepoints(TilePosition startLocation) {
+	public void sortChokepoints(TilePosition startLocation) {
 		
 		chokePoints.clear();
-		Region startRegion = BWTA.getRegion(startLocation);
+		Region startRegion = bwta.getRegion(startLocation);
 		fillMap(startRegion, 0);
 	}
 	
-	private static void fillMap(Region region, int value) {
+	private void fillMap(Region region, int value) {
 		
 		for (Chokepoint chokepoint : region.getChokepoints()) {
 			if (!chokePoints.containsKey(chokepoint) || chokePoints.get(chokepoint) > value) {
@@ -91,31 +101,32 @@ public class MyMap {
 		}
 	}
 	
-	public static List<TilePosition> getShortestPath(TilePosition start, TilePosition end) {
-	    return BWTA.getShortestPath(start, end);
+	public List<TilePosition> getShortestPath(TilePosition start, TilePosition end) {
+		
+	    return bwta.getShortestPath(start, end);
 	}
 	
-	public static Region getRegion(Position position) {
+	public Region getRegion(Position position) {
 	    
-	    return BWTA.getRegion(position);
+	    return bwta.getRegion(position);
 	}
 	
-	public static Region getRegion(int x, int y) {
+	public Region getRegion(int x, int y) {
 	
-	    return BWTA.getRegion(x, y);
+	    return bwta.getRegion(x, y);
 	}
 
-	public static List<Region> getRegions() {
+	public List<Region> getRegions() {
 	    
-	    return BWTA.getRegions();
+	    return bwta.getRegions();
 	}
 	
-	public static Set<Chokepoint> getChokepoints() {
+	public Set<Chokepoint> getChokepoints() {
 		
-	    return MyMap.chokePoints.keySet();
+	    return this.chokePoints.keySet();
 	}
 	
-	public static Chokepoint getBestChokepoint(Region region) {
+	public Chokepoint getBestChokepoint(Region region) {
 		
 		if (region == null || region.getChokepoints().isEmpty()) {
 			return null;
@@ -131,7 +142,7 @@ public class MyMap {
 		return bestChokepoint;
 	}
 
-	public static Chokepoint getChokepoint(int value) {
+	public Chokepoint getChokepoint(int value) {
 		
 		for (Chokepoint point : chokePoints.keySet()) {
 			if (chokePoints.get(point) == value) {
@@ -141,7 +152,7 @@ public class MyMap {
 		return null;
 	}
 	
-	public static int getValue(Chokepoint chokepoint) {
+	public int getValue(Chokepoint chokepoint) {
 		
 		if (chokePoints.containsKey(chokepoint)) {
 			return chokePoints.get(chokepoint);
@@ -150,8 +161,9 @@ public class MyMap {
 		}
 	}
 
-	public static List<BaseLocation> getStartLocations() {
-		return BWTA.getStartLocations();
+	public List<BaseLocation> getStartLocations() {
+		
+		return bwta.getStartLocations();
 	}
 
 }

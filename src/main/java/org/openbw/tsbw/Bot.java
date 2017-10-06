@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.openbw.bwapi4j.BW;
-import org.openbw.bwapi4j.BWMap;
 import org.openbw.bwapi4j.InteractionHandler;
 import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.Player;
@@ -29,7 +28,10 @@ import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
 import org.openbw.tsbw.unit.MineralPatch;
+import org.openbw.tsbw.unit.UnitFactory;
 import org.openbw.tsbw.unit.VespeneGeyser;
+
+import bwta.BWTA;
 
 public abstract class Bot {
 
@@ -42,7 +44,7 @@ public abstract class Bot {
 	protected Player player2;
 	
 	protected Map<Player, UnitInventory> unitInventories;
-	protected BWMap bwMap;
+	protected MapAnalyzer mapAnalyzer;
 	protected MapDrawer mapDrawer;
 	protected InteractionHandler interactionHandler;
 	protected BuildingPlanner buildingPlanner;
@@ -64,6 +66,7 @@ public abstract class Bot {
 		
 		logger.trace("executing run().");
 		this.bw = new BW(this.eventListener);
+		this.bw.setUnitFactory(new UnitFactory(this.bw));
 		logger.debug("starting game...");
 		bw.startGame();
 	}
@@ -88,16 +91,16 @@ public abstract class Bot {
 		
 		this.interactionHandler = bw.getInteractionHandler();
         this.mapDrawer = bw.getMapDrawer();
-        this.bwMap = bw.getBWMap();
+        this.mapAnalyzer = new MapAnalyzer(bw.getBWMap(), new BWTA());
         for (Construction construction : Construction.values()) {
-            construction.setConstructionProvider(new DefaultConstruction(construction.getType(), bwMap));
+            construction.setConstructionProvider(new DefaultConstruction(construction.getType(), this.mapAnalyzer));
         }
         
 		this.gameStarted = false;
 		
-		MyMap.analyze();
+		mapAnalyzer.analyze();
 		
-		logger.info("playing on {} (hash: {})", this.bwMap.mapFileName(), this.bwMap.mapHash());
+		logger.info("playing on {} (hash: {})", this.mapAnalyzer.getBWMap().mapFileName(), this.mapAnalyzer.getBWMap().mapHash());
 		
 		for (Player player : bw.getAllPlayers()) {
 			UnitInventory unitInventory = new UnitInventory();
@@ -108,11 +111,11 @@ public abstract class Bot {
 		this.player1 = this.interactionHandler.self();
 		this.player2 = this.interactionHandler.enemy();
 		
-		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), interactionHandler, bwMap);
+		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.interactionHandler, this.mapAnalyzer);
 		this.buildingPlanner.initialize();
 		
-		this.scoutingStrategy = this.scoutingFactory.getStrategy(bwMap, mapDrawer, interactionHandler);
-		this.miningStrategy = this.miningFactory.getStrategy(mapDrawer, interactionHandler);
+		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
+		this.miningStrategy = this.miningFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.gameStrategy = strategyFactory.getStrategy(this.bw, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
 		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1));
@@ -122,6 +125,12 @@ public abstract class Bot {
 		logger.info("latency: {} ({}). latency compensation: {}", this.interactionHandler.getLatency(), 
 				this.interactionHandler.getLatencyFrames(), this.interactionHandler.isLatComEnabled());
 	
+		this.bw.getAllUnits().stream().filter(u -> u instanceof MineralPatch)
+				.forEach(u -> unitInventories.get(player1).register((MineralPatch)u));
+		
+		this.bw.getAllUnits().stream().filter(u -> u instanceof VespeneGeyser)
+		.forEach(u -> unitInventories.get(player1).register((VespeneGeyser)u));
+
 		this.onStart();
 	}
 	
@@ -225,10 +234,13 @@ public abstract class Bot {
 		logger.trace("adding {}. exists: {}", unit, exists);
 		if (!exists) {
 		    if (unit instanceof PlayerUnit) {
+		    	
 		        inventory.register((PlayerUnit)unit);
 		    } else if (unit instanceof MineralPatch) {
+		    	
 		        inventory.register((MineralPatch)unit);
 		    } else if (unit instanceof VespeneGeyser) {
+		    	
 		        inventory.register((VespeneGeyser)unit);
 		    }
 		}
@@ -325,6 +337,7 @@ public abstract class Bot {
 		if (!gameStarted && unitInventories.get(this.player1).getAllWorkers().size() == 4 && !unitInventories.get(this.player1).getCommandCenters().isEmpty()) {
 			
 			unitInventories.get(this.player1).getMineralWorkers().addAll(unitInventories.get(this.player1).getAllWorkers());
+			
 			miningStrategy.initialize(unitInventories.get(this.player1).getCommandCenters(), unitInventories.get(this.player1).getRefineries(), unitInventories.get(this.player1).getMineralWorkers(), unitInventories.get(this.player1).getVespeneWorkers(), unitInventories.get(this.player1).getMineralPatches());
 			gameStrategy.start(player1.minerals(), player1.gas());
 			gameStarted = true;

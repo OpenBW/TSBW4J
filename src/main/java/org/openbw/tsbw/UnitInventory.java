@@ -209,11 +209,17 @@ public class UnitInventory {
 			if (unit.isCompleted()) {
 				this.underConstruction.remove(unit);
 				this.allUnits.add(unit);
+				if (this.main == null && unit instanceof CommandCenter) {
+					this.main = (CommandCenter)unit;
+				}
 			} else {
 				this.underConstruction.add((Building)unit);
 			}
 		} else {
 			this.allUnits.add(unit);
+			if (unit instanceof SCV) {
+				this.mineralWorkers.add((SCV) unit);
+			}
 		}
 	}
 	
@@ -238,7 +244,7 @@ public class UnitInventory {
 			group.remove(unit);
 		}
 		if (unit.equals(this.main)) {
-			this.main = null;
+			this.main = null; // TODO assign next command center as main if there is one
 		}
 		this.destroyedUnits.add(unit);
 	}

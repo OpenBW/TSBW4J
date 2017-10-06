@@ -11,7 +11,7 @@ import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
-import org.openbw.tsbw.MyMap;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.analysis.PPF2;
@@ -25,21 +25,24 @@ public class ConstructionProject {
 	
 	private int id;
 	private InteractionHandler interactionHandler;
+	private MapAnalyzer mapAnalyzer;
 	private Status status;
 	private SCV assignedWorker = null;
 	private TilePosition constructionSite = null;
 	
 	private Construction construction;
 	
-	/* default */ ConstructionProject(int id, Construction construction, InteractionHandler interactionHandler) {
+	/* default */ ConstructionProject(int id, Construction construction, InteractionHandler interactionHandler, MapAnalyzer mapAnalyzer) {
 		this.status = Status.QUEUED;
 		this.id = id;
 		this.construction = construction;
 		this.interactionHandler = interactionHandler;
+		this.mapAnalyzer = mapAnalyzer;
 	}
 	
-	/* default */ ConstructionProject(int id, Construction construction, InteractionHandler interactionHandler, TilePosition constructionSite) {
-		this(id, construction, interactionHandler);
+	/* default */ ConstructionProject(int id, Construction construction, InteractionHandler interactionHandler, MapAnalyzer mapAnalyzer, TilePosition constructionSite) {
+		
+		this(id, construction, interactionHandler, mapAnalyzer);
 		this.constructionSite = constructionSite;
 	}
 
@@ -97,7 +100,7 @@ public class ConstructionProject {
 		if (hasConstructionSite()) {
 		
 			for (SCV worker : workerSquad) {
-				double currentDistance = MyMap.getGroundDistance(worker.getTilePosition(), constructionSite);
+				double currentDistance = mapAnalyzer.getGroundDistance(worker.getTilePosition(), constructionSite);
 				if (currentDistance < distance) {
 					distance = currentDistance;
 					builder = worker;
@@ -136,7 +139,7 @@ public class ConstructionProject {
 	 */
 	/* default */ int estimateMineralsMinedDuringTravel(int remainingMiningWorkerCount) {
 		
-		double distance = MyMap.getGroundDistance(this.assignedWorker.getTilePosition(), this.constructionSite);
+		double distance = mapAnalyzer.getGroundDistance(this.assignedWorker.getTilePosition(), this.constructionSite);
 		double travelTimetoConstructionSite = distance / Constants.AVERAGE_SCV_SPEED;
 		int estimatedMiningDuringTravel = (int)PPF2.calculateEstimatedMining((int)travelTimetoConstructionSite, remainingMiningWorkerCount);
 		

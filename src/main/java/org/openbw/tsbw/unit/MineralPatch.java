@@ -10,7 +10,7 @@ import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.Constants;
-import org.openbw.tsbw.MyMap;
+import org.openbw.tsbw.MapAnalyzer;
 
 
 public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
@@ -19,10 +19,10 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 	
 	public enum Status {BEING_MINED, FREE};
 	
-	private Position myRegionCenter;
 	private Status status;
 	
 	private int assignedScvs;
+	private Position myRegionCenter;
 	
 	private CommandCenter closestCommandCenter;
 	private int dyToClosestCC = Integer.MAX_VALUE;
@@ -33,10 +33,6 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 		super(id);
 		this.status = Status.FREE;
 		this.assignedScvs = 0;
-		this.myRegionCenter = MyMap.getRegionCenter(this.getTilePosition());
-		if (this.myRegionCenter == null) {
-			logger.error("Could not get region for {} at {}", this, this.getTilePosition());
-		}
 	}
 
 	public Status getStatus() {
@@ -73,12 +69,19 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 		this.roundTripTimeToClosestCC = Double.MAX_VALUE;
 	}
 	
-	public void updateDistance(CommandCenter commandCenter, boolean wipeScvCount) {
+	public void updateDistance(MapAnalyzer mapAnalyzer, CommandCenter commandCenter, boolean wipeScvCount) {
 		
 		if (wipeScvCount) {
 			this.assignedScvs = 0;
 		}
-		Position commandCenterRegionCenter = MyMap.getRegionCenter(commandCenter.getTilePosition());
+		
+		if (this.myRegionCenter == null) {
+			this.myRegionCenter = mapAnalyzer.getRegionCenter(this.getTilePosition());
+			if (this.myRegionCenter == null) {
+				logger.error("Could not get region for {} at {}", this, this.getTilePosition());
+			}
+		}
+		Position commandCenterRegionCenter = mapAnalyzer.getRegionCenter(commandCenter.getTilePosition());
 		
 		double roundTripTime;
 		double groundDistance;
@@ -97,7 +100,7 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 			
 		} else {
 			
-			groundDistance = (int)MyMap.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
+			groundDistance = (int)mapAnalyzer.getGroundDistance(commandCenter.getTilePosition(), this.getTilePosition());
 			roundTripTime = groundDistance * 2 / UnitType.Terran_SCV.topSpeed() + Constants.MINING_TIME;
 		}
 		

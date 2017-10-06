@@ -6,12 +6,12 @@ import java.util.Queue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi4j.BWMap;
 import org.openbw.bwapi4j.InteractionHandler;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 
@@ -35,7 +35,7 @@ public class BuildingPlanner  {
 	
 	private UnitInventory unitInventory;
 	private InteractionHandler interactionHandler;
-	private BWMap bwMap;
+	private MapAnalyzer mapAnalyzer;
 	private int uniqueIdCounter;
 	
 	private GroupListener<Building> buildingListener = new GroupListener<Building>() {
@@ -102,12 +102,12 @@ public class BuildingPlanner  {
 
 	private Squad<SCV> availableWorkers = null;
 	
-	public BuildingPlanner(UnitInventory unitInventory, InteractionHandler interactionHandler, BWMap bwMap) {
+	public BuildingPlanner(UnitInventory unitInventory, InteractionHandler interactionHandler, MapAnalyzer mapAnalyzer) {
 		
 		this.unitInventory = unitInventory;
 		
 		this.interactionHandler = interactionHandler;
-		this.bwMap = bwMap;
+		this.mapAnalyzer = mapAnalyzer;
 		this.queue = new LinkedList<ConstructionProject>();
 		this.completed = new LinkedList<ConstructionProject>();
 	}
@@ -127,7 +127,7 @@ public class BuildingPlanner  {
 	
 	public int queue(Construction construction, TilePosition constructionSite, SCV worker) {
 		
-		ConstructionProject project = new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, constructionSite);
+		ConstructionProject project = new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, this.mapAnalyzer, constructionSite);
 		project.setAssignedWorker(worker);
 		this.queue.add(project);
 		logger.debug("added {} at {} with worker {} to queue", construction, constructionSite, worker);
@@ -136,14 +136,14 @@ public class BuildingPlanner  {
 
 	public int queue(Construction construction, TilePosition constructionSite) {
 		
-		this.queue.add(new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, constructionSite));
+		this.queue.add(new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, this.mapAnalyzer, constructionSite));
 		logger.debug("added {} at {} to queue", construction, constructionSite);
 		return uniqueIdCounter;
 	}
 
 	public int queue(Construction construction) {
 		
-		this.queue.add(new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler));
+		this.queue.add(new ConstructionProject(++uniqueIdCounter, construction, this.interactionHandler, this.mapAnalyzer));
 		logger.debug("added {} to queue", construction);
 		return uniqueIdCounter;
 	}
@@ -204,7 +204,7 @@ public class BuildingPlanner  {
 			if (project.getStatus() == ConstructionProject.Status.ABOUT_TO_CONSTRUCT) {
 				
 				if (!project.getAssignedWorker().isConstructing() && currentMinerals >= project.getMineralPrice() 
-						&& currentGas >= project.getGasPrice() && project.isConstructionSiteVisible(bwMap)) {
+						&& currentGas >= project.getGasPrice() && project.isConstructionSiteVisible(this.mapAnalyzer.getBWMap())) {
 					
 					boolean success = project.build();
 					if (!success) {

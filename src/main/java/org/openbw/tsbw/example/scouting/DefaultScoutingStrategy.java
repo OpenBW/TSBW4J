@@ -14,7 +14,7 @@ import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
-import org.openbw.tsbw.MyMap;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
@@ -31,10 +31,12 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 	private double[][] map;
 	
 	private double totalScore;
+	private BWMap bwMap;
 	
-	public DefaultScoutingStrategy(BWMap bwMap, MapDrawer mapDrawer, InteractionHandler interactionHandler) {
+	public DefaultScoutingStrategy(MapAnalyzer mapAnalyzer, MapDrawer mapDrawer, InteractionHandler interactionHandler) {
 		
-		super(bwMap, mapDrawer, interactionHandler);
+		super(mapAnalyzer, mapDrawer, interactionHandler);
+		this.bwMap = mapAnalyzer.getBWMap();
 	}
 	
 	public double calculateRelativeScore() {
@@ -65,11 +67,11 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 		
 		List<Region> veryHighValueRegions = new ArrayList<Region>();
 		List<Region> highValueRegions = new ArrayList<Region>();
-		for (TilePosition baseLocation : this.bwMap.getStartLocations()) {
-			veryHighValueRegions.add(MyMap.getRegion(baseLocation.toPosition()));
+		for (TilePosition baseLocation : this.bwMap.getStartPositions()) {
+			veryHighValueRegions.add(mapAnalyzer.getRegion(baseLocation.toPosition()));
 		}
-		for (TilePosition baseLocation : bwMap.getStartLocations()) {
-			highValueRegions.add(MyMap.getRegion(baseLocation.toPosition()));
+		for (TilePosition baseLocation : bwMap.getStartPositions()) {
+			highValueRegions.add(mapAnalyzer.getRegion(baseLocation.toPosition()));
 		}
 		
 		initializeEmpty();
@@ -78,13 +80,13 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 			for (int y = 0; y < bwMap.mapHeight(); y++) {
 				
 				map[x][y] = 2;
-				if (highValueRegions.contains(MyMap.getRegion(x * 32, y * 32))) {
+				if (highValueRegions.contains(mapAnalyzer.getRegion(x * 32, y * 32))) {
 					map[x][y] += 1;
 				}
-				if (veryHighValueRegions.contains(MyMap.getRegion(x * 32, y * 32))) {
+				if (veryHighValueRegions.contains(mapAnalyzer.getRegion(x * 32, y * 32))) {
 					map[x][y] += 2;
 				}
-				if (MyMap.getRegion(this.interactionHandler.self().getStartLocation().toPosition()).equals(MyMap.getRegion(x * 32, y * 32))) {
+				if (mapAnalyzer.getRegion(this.interactionHandler.self().getStartLocation().toPosition()).equals(mapAnalyzer.getRegion(x * 32, y * 32))) {
 					map[x][y] -= 0.5;
 				}
 				initialMap[x][y] = map[x][y];

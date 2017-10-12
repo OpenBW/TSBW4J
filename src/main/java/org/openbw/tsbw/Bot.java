@@ -230,33 +230,30 @@ public abstract class Bot {
 	    if (inventory == null) {
 	        System.out.println("should not be null");
 	    }
-		boolean exists = inventory.update(unit, timeSpotted);
-		logger.trace("adding {}. exists: {}", unit, exists);
-		if (!exists) {
-		    if (unit instanceof PlayerUnit) {
-		    	
-		        inventory.register((PlayerUnit)unit);
-		    } else if (unit instanceof MineralPatch) {
-		    	
-		        inventory.register((MineralPatch)unit);
-		    } else if (unit instanceof VespeneGeyser) {
-		    	
-		        inventory.register((VespeneGeyser)unit);
-		    }
-		}
+	    if (unit instanceof PlayerUnit) {
+	    	
+	        inventory.register((PlayerUnit)unit);
+	    } else if (unit instanceof MineralPatch) {
+	    	
+	        inventory.register((MineralPatch)unit);
+	    } else if (unit instanceof VespeneGeyser) {
+	    	
+	        inventory.register((VespeneGeyser)unit);
+	    }
 	}
 	
 	/* default */ final void onUnitDiscover(Unit unit) {
 		
 		// TODO handle (enemy) units that are discovered
-//		logger.trace("onDiscover: discovered {}.", unit);
-//		UnitInventory inventory;
-//		if (unit instanceof PlayerUnit) {
-//		    inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
-//		} else {
-//		    inventory = this.unitInventories.get(this.player1);
-//		}
-//		addToInventory(unit, inventory, interactionHandler.getFrameCount());
+		logger.trace("onDiscover: discovered {}.", unit);
+		if (unit instanceof PlayerUnit) {
+			
+			PlayerUnit playerUnit = (PlayerUnit) unit;
+			if (!playerUnit.getPlayer().equals(this.interactionHandler.self())) {
+				
+				addToInventory(unit, this.unitInventories.get(playerUnit.getPlayer()), interactionHandler.getFrameCount());
+			}
+		}
 	}
 	
 	public void onUnitEvade(Unit unit) {

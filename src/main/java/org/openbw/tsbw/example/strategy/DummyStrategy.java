@@ -236,6 +236,12 @@ public class DummyStrategy extends AbstractGameStrategy {
 			
 			this.buildingPlanner.queue(Construction.Terran_Barracks);
 		}
+		
+		if (frame % 4000 == 0 && !this.enemyInventory.getBuildings().isEmpty()) {
+			
+			Building building = this.enemyInventory.getBuildings().first();
+			myInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
+		}
 	}
 
 	/**

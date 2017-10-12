@@ -18,6 +18,7 @@ import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.PlayerUnit;
 import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.SCV;
+import org.openbw.bwapi4j.unit.ScannerSweep;
 import org.openbw.bwapi4j.unit.SupplyDepot;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.unit.MineralPatch;
@@ -220,36 +221,49 @@ public class UnitInventory {
 	
 	public void register(PlayerUnit unit) {
 		
-		if (unit instanceof Building) {
-			if (unit.isCompleted()) {
-				this.underConstruction.remove(unit);
-				this.allUnits.add(unit);
-				this.allBuildings.add((Building)unit);
-				if (this.main == null && unit instanceof CommandCenter) {
-					this.main = (CommandCenter)unit;
+		if (!this.allUnits.contains(unit)) {
+			
+			if (unit instanceof Building) {
+				
+				if (unit.isCompleted()) {
+					this.underConstruction.remove(unit);
+					this.allUnits.add(unit);
+					this.allBuildings.add((Building)unit);
+					if (this.main == null && unit instanceof CommandCenter) {
+						this.main = (CommandCenter)unit;
+					}
+				} else {
+					this.underConstruction.add((Building)unit);
 				}
+			} else if (unit instanceof ScannerSweep) {
+				
+				// TODO handle scanner sweep
 			} else {
-				this.underConstruction.add((Building)unit);
-			}
-		} else {
-			if (!unit.isCompleted()) {
-				logger.error("not allowed.");
-			}
-			this.allUnits.add(unit);
-			if (unit instanceof SCV) {
-				this.allWorkers.add((SCV) unit);
-			} else {
-				this.allArmy.add((MobileUnit)unit);
+				if (!unit.isCompleted()) {
+					logger.error("not allowed.");
+				}
+				this.allUnits.add(unit);
+				if (unit instanceof SCV) {
+					this.allWorkers.add((SCV) unit);
+				} else {
+					this.allArmy.add((MobileUnit)unit);
+				}
 			}
 		}
 	}
 	
 	public void register(VespeneGeyser geyser) {
-		this.allVespeneGeysers.add(geyser);
+		
+		if (!this.allVespeneGeysers.contains(geyser)) {
+			this.allVespeneGeysers.add(geyser);
+		}
 	}
 	
 	public void register(MineralPatch patch) {
-		this.allMineralPatches.add(patch);
+		
+		if (!this.allMineralPatches.contains(patch)) {
+			this.allMineralPatches.add(patch);
+		}
 	}
 	
 	public void onUnitDestroy(MineralPatch patch, int frameCount) {
@@ -299,10 +313,5 @@ public class UnitInventory {
 		this.groups.add(squad);
 		logger.debug("created empty squad {}", name);
 		return squad;
-	}
-
-	public boolean update(Unit bwUnit, int timeSpotted) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 }

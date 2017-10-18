@@ -19,8 +19,11 @@ import org.openbw.bwapi4j.unit.PlayerUnit;
 import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.building.BuildingPlanner;
-import org.openbw.tsbw.building.Construction;
-import org.openbw.tsbw.building.DefaultConstruction;
+import org.openbw.tsbw.building.CommandCenterConstruction;
+import org.openbw.tsbw.building.ConstructionType;
+import org.openbw.tsbw.building.FactoryConstruction;
+import org.openbw.tsbw.building.RefineryConstruction;
+import org.openbw.tsbw.building.SupplyDepotConstruction;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.MiningFactory;
 import org.openbw.tsbw.strategy.MiningStrategy;
@@ -92,9 +95,6 @@ public abstract class Bot {
 		this.interactionHandler = bw.getInteractionHandler();
         this.mapDrawer = bw.getMapDrawer();
         this.mapAnalyzer = new MapAnalyzer(bw.getBWMap(), new BWTA());
-        for (Construction construction : Construction.values()) {
-            construction.setConstructionProvider(new DefaultConstruction(construction.getType(), this.mapAnalyzer));
-        }
         
 		this.gameStarted = false;
 		
@@ -111,12 +111,18 @@ public abstract class Bot {
 		this.player1 = this.interactionHandler.self();
 		this.player2 = this.interactionHandler.enemy();
 		
-		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.interactionHandler, this.mapDrawer, this.mapAnalyzer);
+		// set custom construction providers
+        ConstructionType.Terran_Command_Center.setConstructionProvider(new CommandCenterConstruction(player1.getStartLocation()));
+        ConstructionType.Terran_Factory.setConstructionProvider(new FactoryConstruction());
+        ConstructionType.Terran_Supply_Depot.setConstructionProvider(new SupplyDepotConstruction());
+        ConstructionType.Terran_Refinery.setConstructionProvider(new RefineryConstruction());
+        
+		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.mapAnalyzer, this.interactionHandler);
 		this.buildingPlanner.initialize();
 		
 		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.miningStrategy = this.miningFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
-		this.gameStrategy = strategyFactory.getStrategy(this.bw, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
+		this.gameStrategy = strategyFactory.getStrategy(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
 		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1));
 		this.gameStrategy.initialize();
@@ -143,7 +149,8 @@ public abstract class Bot {
 	public void onFrame() {
 		
 		int frameCount = interactionHandler.getFrameCount();
-		long milliSeconds = System.currentTimeMillis();
+		System.out.println(frameCount);
+//		long milliSeconds = System.currentTimeMillis();
 		
 		if (!gameStarted || frameCount < 1) {
 			logger.info("frame 0 starting at {}.", new Date());
@@ -182,6 +189,8 @@ public abstract class Bot {
 	}
 	
 	private void drawGameInfo() {
+		
+		buildingPlanner.drawConstructionSites(this.mapDrawer);
 		
 		mapDrawer.drawTextScreen(450, 25, "game time: " + interactionHandler.getFrameCount());
 		mapDrawer.drawTextScreen(530, 35, "FPS: " + interactionHandler.getFPS());
@@ -275,12 +284,7 @@ public abstract class Bot {
 		
 		logger.trace("onCreate: New {} unit created.", unit);
 		if (unit instanceof Building) {
-			Building building = (Building) unit;
 			this.addToInventory(unit, this.unitInventories.get(((Building) unit).getPlayer()), interactionHandler.getFrameCount());
-			
-			if (building.getPlayer().equals(this.player1)) {
-				buildingPlanner.onConstructionStarted(building.getBuildUnit());
-			}
 		}
 	}
 	
@@ -302,11 +306,15 @@ public abstract class Bot {
 	/* default */ final void internalOnUnitMorph(Unit unit) {
 		
 		if (unit instanceof Refinery) {
+			UnitInventory inventory = unitInventories.get(((Refinery) unit).getPlayer());
+			inventory.getVespeneGeysers().stream().filter(r -> r.getId() == unit.getId()).findFirst().ifPresent(c -> inventory.getVespeneGeysers().remove(c));
 			onUnitCreate(unit);
 		} else if (unit instanceof VespeneGeyser) {
-			onUnitDestroy(unit);
+			UnitInventory inventory = unitInventories.get(((Refinery) unit).getPlayer());
+			inventory.getRefineries().stream().filter(r -> r.getId() == unit.getId()).findFirst().ifPresent(c -> onUnitDestroy(c));
+			onUnitComplete(unit);
 		} else {
-			onUnitMorph(unit); // TODO adjust unit type in inventory (maybe remove and re-add unit?)
+			onUnitMorph(unit);
 		}
 	}
 

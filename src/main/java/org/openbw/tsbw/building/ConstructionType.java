@@ -4,12 +4,12 @@ import java.util.Queue;
 
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.UnitType;
-import org.openbw.bwapi4j.unit.Mechanical;
 import org.openbw.bwapi4j.unit.SCV;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 
 
-public enum Construction implements Mechanical {
+public enum ConstructionType {
 
 	Terran_Command_Center(UnitType.Terran_Command_Center),
 	Terran_Supply_Depot(UnitType.Terran_Supply_Depot),
@@ -54,26 +54,29 @@ public enum Construction implements Mechanical {
 	Protoss_Shield_Battery(UnitType.Protoss_Shield_Battery);
 
 	private UnitType unitType;
-	private DefaultConstruction constructionProvider;
+	private ConstructionProvider constructionProvider;
 
-	private Construction(UnitType type) {
+	private ConstructionType(UnitType type) {
+		
 		this.unitType = type;
+		this.constructionProvider = new ConstructionProvider(type);
 	}
 	
-	public UnitType getType() {
-		return this.unitType;
+	public boolean build(SCV worker, TilePosition tilePosition) {
+	
+		return worker.build(tilePosition, this.unitType);
 	}
 	
-	public void setConstructionProvider(DefaultConstruction constructionProvider) {
+	public void setConstructionProvider(ConstructionProvider constructionProvider) {
 		this.constructionProvider = constructionProvider;
 	}
 	
-	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
-		return constructionProvider.getBuildTile(builder, unitInventory, projects);
+	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects) {
+		return constructionProvider.getBuildTile(unitInventory, mapAnalyzer, builder, projects);
 	}
 	
-	public TilePosition getBuildTile(SCV builder, TilePosition aroundHere, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
-		return this.constructionProvider.getBuildTile(builder, aroundHere, unitInventory, projects);
+	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+		return this.constructionProvider.getBuildTile(unitInventory, mapAnalyzer, builder, projects, aroundHere);
 	}
 	
 	public int getMineralPrice() {

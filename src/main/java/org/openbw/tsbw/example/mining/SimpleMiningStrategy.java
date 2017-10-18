@@ -119,7 +119,7 @@ public class SimpleMiningStrategy implements MiningStrategy {
 			boolean success = worker.gather(targetPatch, shift);
 			
 			if (!success) {
-				logger.debug("gather command failed with error {}", interactionHandler.getLastError());
+				logger.debug("gather command for {} failed with error {}", worker, interactionHandler.getLastError());
 			}
 		} else {
 			worker.move(targetPatch.getPosition(), shift);
@@ -143,14 +143,14 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		mineralPatches.addAll(patchesToReSort);
 	}
 	
-	private void processIdleMiningWorkers() {
-		
-		for (SCV worker : this.miningSquad) {
-			if (worker.isIdle()) {
-				addWorker(worker);
-			}
-		}
-	}
+//	private void processIdleMiningWorkers() {
+//		
+//		for (SCV worker : this.miningSquad) {
+//			if (worker.isIdle()) {
+//				addWorker(worker);
+//			}
+//		}
+//	}
 	
 	@Override
 	public void run(int frame) {

@@ -6,13 +6,17 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.BW;
+import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.Factory;
 import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.building.BuildingPlanner;
-import org.openbw.tsbw.building.Construction;
+import org.openbw.tsbw.building.ConstructionType;
+import org.openbw.tsbw.building_old.Construction;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 	
@@ -64,6 +68,8 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 			// if our refinery finished, add an additional workers to mine gas from it
 			if (building instanceof Refinery) {
 				myInventory.getMineralWorkers().first().gather((Refinery)building);
+			} else if (building instanceof Factory) {
+				buildOrder.add(new AddonAction(myInventory.getFactories().first(), UnitType.Terran_Machine_Shop));
 			}
 		}
 
@@ -80,9 +86,9 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 		}
 	};
 	
-	/* default */ BuildOrderStrategy(BW bw, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
+	/* default */ BuildOrderStrategy(BW bw, MapAnalyzer mapAnalyzer, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
 	
-		super(bw, scoutingStrategy, buildingPlanner);
+		super(bw, mapAnalyzer, scoutingStrategy, buildingPlanner);
 		
 		this.myInventory = myInventory;
 		this.buildOrder = new ArrayList<BoAction>();
@@ -106,23 +112,30 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
-		this.buildOrder.add(new ConstructionAction(buildingPlanner, Construction.Terran_Supply_Depot));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Supply_Depot));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
-		this.buildOrder.add(new ConstructionAction(buildingPlanner, Construction.Terran_Barracks));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Barracks));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
-		this.buildOrder.add(new ConstructionAction(buildingPlanner, Construction.Terran_Refinery));
-		this.buildOrder.add(new TrainMarineAction(myInventory.getBarracks()));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Refinery));
+		this.buildOrder.add(new TrainMarineAction(myInventory));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
-		this.buildOrder.add(new TrainMarineAction(myInventory.getBarracks()));
-		this.buildOrder.add(new ConstructionAction(buildingPlanner, Construction.Terran_Supply_Depot));
+		this.buildOrder.add(new TrainMarineAction(myInventory));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Supply_Depot));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
-		this.buildOrder.add(new ConstructionAction(buildingPlanner, Construction.Terran_Factory));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Factory));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
-		this.buildOrder.add(new TrainMarineAction(myInventory.getBarracks()));
-		this.buildOrder.add(new TrainMarineAction(myInventory.getBarracks()));
+		this.buildOrder.add(new TrainMarineAction(myInventory));
+		this.buildOrder.add(new TrainMarineAction(myInventory));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Academy));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Engineering_Bay));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Bunker));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Missile_Turret));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Armory));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Starport));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Science_Facility));
 	}
 	
 	@Override
@@ -132,7 +145,7 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 			BoAction action = buildOrder.get(boPointer);
 			if (action.execute(availableMinerals, availableGas, availableSupply)) {
 				this.boPointer++;
-				logger.debug("executed BO step: " + action);
+				logger.debug("frame {}: executed BO step: {}", frame, action);
 			}
 		}
 	}

@@ -1,17 +1,17 @@
 package org.openbw.tsbw.strategy;
 
 import org.openbw.bwapi4j.BW;
-import org.openbw.bwapi4j.BWMap;
 import org.openbw.bwapi4j.DamageEvaluator;
 import org.openbw.bwapi4j.InteractionHandler;
 import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.Player;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.building.BuildingPlanner;
 
 public abstract class AbstractGameStrategy {
 
 	protected MapDrawer mapDrawer;
-	protected BWMap bwMap;
+	protected MapAnalyzer mapAnalyzer;
 	protected ScoutingStrategy scoutingStrategy;
 	protected Player self;
 	protected Player enemy;
@@ -19,16 +19,16 @@ public abstract class AbstractGameStrategy {
 	protected DamageEvaluator damageEvaluator;
 	protected InteractionHandler interactionHandler;
 	
-	public AbstractGameStrategy(BW bw, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner) {
+	public AbstractGameStrategy(BW bw, MapAnalyzer mapAnalyzer, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner) {
 		
 		this.mapDrawer = bw.getMapDrawer();
 		this.damageEvaluator = bw.getDamageEvaluator();
-		this.bwMap = bw.getBWMap();
 		this.interactionHandler = bw.getInteractionHandler();
 		this.self = this.interactionHandler.self();
 		this.enemy = this.interactionHandler.enemy();
-		this.buildingPlanner = buildingPlanner;
+		this.mapAnalyzer = mapAnalyzer;
 		this.scoutingStrategy = scoutingStrategy;
+		this.buildingPlanner = buildingPlanner;
 		
 	}
 

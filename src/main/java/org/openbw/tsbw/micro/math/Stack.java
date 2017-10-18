@@ -144,10 +144,10 @@ public class Stack<Item> implements Iterable<Item> {
     }
 
     // an iterator, doesn't implement remove() since it's optional
-    private class ListIterator<Item> implements Iterator<Item> {
-        private Node<Item> current;
+    private class ListIterator<T> implements Iterator<T> {
+        private Node<T> current;
 
-        public ListIterator(Node<Item> first) {
+        public ListIterator(Node<T> first) {
             current = first;
         }
 
@@ -159,9 +159,9 @@ public class Stack<Item> implements Iterable<Item> {
             throw new UnsupportedOperationException();
         }
 
-        public Item next() {
+        public T next() {
             if (!hasNext()) throw new NoSuchElementException();
-            Item item = current.item;
+            T item = current.item;
             current = current.next; 
             return item;
         }

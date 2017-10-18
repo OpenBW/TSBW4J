@@ -11,9 +11,10 @@ import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
+import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.building.BuildingPlanner;
-import org.openbw.tsbw.building.Construction;
+import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 
@@ -172,9 +173,9 @@ public class DummyStrategy extends AbstractGameStrategy {
 		}
 	};
 	
-	public DummyStrategy(BW bw, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
+	public DummyStrategy(BW bw, MapAnalyzer mapAnalyzer, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
 	
-		super(bw, scoutingStrategy, buildingPlanner);
+		super(bw, mapAnalyzer, scoutingStrategy, buildingPlanner);
 		
 		this.myInventory = myInventory;
 		this.enemyInventory = enemyInventory;
@@ -225,16 +226,16 @@ public class DummyStrategy extends AbstractGameStrategy {
 		// build supply depots as required: if available supply is less than some threshold queue up a supply depot to be built.
 		// in this case, we make the threshold depend on the number of command centers and barracks we have.
 		int threshold = myInventory.getCommandCenters().size() * 4 + myInventory.getBarracks().size() * 4;
-		if (availableSupply + buildingPlanner.getCount(Construction.Terran_Supply_Depot) * UnitType.Terran_Supply_Depot.supplyProvided() <= threshold) {
+		if (availableSupply + buildingPlanner.getCount(ConstructionType.Terran_Supply_Depot) * UnitType.Terran_Supply_Depot.supplyProvided() <= threshold) {
 
-			buildingPlanner.queue(Construction.Terran_Supply_Depot);
-			availableMinerals -= Construction.Terran_Supply_Depot.getMineralPrice();
+			buildingPlanner.queue(ConstructionType.Terran_Supply_Depot);
+			availableMinerals -= ConstructionType.Terran_Supply_Depot.getMineralPrice();
 		}
 		
 		// "end-game"
 		if (availableMinerals > 250) {
 			
-			this.buildingPlanner.queue(Construction.Terran_Barracks);
+			this.buildingPlanner.queue(ConstructionType.Terran_Barracks);
 		}
 		
 		if (frame % 4000 == 0 && !this.enemyInventory.getBuildings().isEmpty()) {

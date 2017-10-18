@@ -18,9 +18,10 @@
 	<Loggers>
 	    
 	    <!-- set log levels for individual classes like this -->
-		<Logger name="org.openbw.tsbw.example.strategy.DummyStrategy"		level="debug" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
+		<Logger name="org.openbw.bwapi4j.BW"							level="error" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
+	    <Logger name="org.openbw.tsbw.example.strategy.DummyStrategy"	level="debug" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
 		
-		<Root level="trace">
+		<Root level="debug">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="File" />
 		</Root>

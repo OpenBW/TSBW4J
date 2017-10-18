@@ -1,4 +1,4 @@
-package org.openbw.tsbw.building;
+package org.openbw.tsbw.building_old;
 
 import java.util.Queue;
 
@@ -11,14 +11,14 @@ import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.unit.VespeneGeyser;
 
-public class RefineryConstruction extends ConstructionProvider {
+public class RefineryConstruction extends DefaultConstruction {
 
-	public RefineryConstruction() {
-		super(UnitType.Terran_Refinery);
+	public RefineryConstruction(MapAnalyzer mapAnalyzer) {
+		super(UnitType.Terran_Refinery, mapAnalyzer);
 	}
 
 	@Override
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+	public TilePosition getBuildTile(SCV builder, TilePosition aroundHere, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
 		
 		Position around = aroundHere.toPosition();
 		
@@ -28,5 +28,12 @@ public class RefineryConstruction extends ConstructionProvider {
 		} else {
 			return geysers.stream().min((u1, u2) -> Double.compare(u1.getDistance(around), u2.getDistance(around))).get().getTilePosition();
 		}
+	}
+	
+	@Override
+	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
+		
+		TilePosition aroundHere = builder == null ? unitInventory.getMain().getTilePosition() : builder.getTilePosition();
+		return getBuildTile(builder, aroundHere, unitInventory, projects);
 	}
 }

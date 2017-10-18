@@ -1,4 +1,4 @@
-package org.openbw.tsbw.building;
+package org.openbw.tsbw.building_old;
 
 import java.util.Queue;
 
@@ -10,15 +10,15 @@ import org.openbw.tsbw.UnitInventory;
 
 import bwta.Region;
 
-public class SupplyDepotConstruction extends ConstructionProvider {
+public class SupplyDepotConstruction extends DefaultConstruction {
 
-	public SupplyDepotConstruction() {
-		super(UnitType.Terran_Factory);
+	public SupplyDepotConstruction(MapAnalyzer mapAnalyzer) {
+		super(UnitType.Terran_Factory, mapAnalyzer);
 	}
 
 	@Override
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects) {
-	
+	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
+		
 		Region region;
 		if (unitInventory.getMain() == null) {
 			region = mapAnalyzer.getRegion(unitInventory.getAvailableWorkers().first().getPosition());
@@ -34,13 +34,13 @@ public class SupplyDepotConstruction extends ConstructionProvider {
 		TilePosition position = new TilePosition((int)(center.getX() + dx * 10 / d), (int)(center.getY() + dy * 10 / d));
 		TilePosition nextPosition = position;
 		
-		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), true); i++) {
+		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.unitType, true); i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(position.getX() + x, position.getY() + y);
-				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), true) && !collidesWithConstruction(nextPosition, projects)) {
+				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.unitType, true) && !collidesWithConstruction(nextPosition, projects)) {
 					
 					return nextPosition;
 				}

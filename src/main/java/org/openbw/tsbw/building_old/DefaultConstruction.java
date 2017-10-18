@@ -1,4 +1,4 @@
-package org.openbw.tsbw.building;
+package org.openbw.tsbw.building_old;
 
 import java.util.Queue;
 

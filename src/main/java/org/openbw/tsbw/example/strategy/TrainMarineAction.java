@@ -1,15 +1,15 @@
 package org.openbw.tsbw.example.strategy;
 
 import org.openbw.bwapi4j.unit.Barracks;
-import org.openbw.tsbw.Group;
+import org.openbw.tsbw.UnitInventory;
 
 public class TrainMarineAction implements BoAction {
 
-	private Group<Barracks> allBarracks;
+	private UnitInventory unitInventory;
 	
-	/* default */ TrainMarineAction(Group<Barracks> barracks) {
+	/* default */ TrainMarineAction(UnitInventory unitInventory) {
 		
-		this.allBarracks = barracks;
+		this.unitInventory = unitInventory;
 	}
 	
 	@Override
@@ -17,7 +17,7 @@ public class TrainMarineAction implements BoAction {
 		
 		int minQueueSize = 1;
 		Barracks bestBarracks = null;
-		for (Barracks barracks : allBarracks) {
+		for (Barracks barracks : unitInventory.getBarracks()) {
 			if (barracks.getTrainingQueueSize() < minQueueSize) {
 				minQueueSize = barracks.getTrainingQueueSize();
 				bestBarracks = barracks;

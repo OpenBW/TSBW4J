@@ -1,6 +1,7 @@
 package org.openbw.tsbw.building;
 
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 import org.apache.logging.log4j.LogManager;
@@ -60,33 +61,6 @@ public class BuildingPlanner {
 		}
 	};
 	
-	private GroupListener<Building> buildingListener = new GroupListener<Building>() {
-		
-		@Override
-		public void onAdd(Building building) {
-			
-			for (ConstructionProject project : projects) {
-					
-					if (building.equals(project.getBuilding())) {
-						projects.remove(project);
-						return;
-					}
-			}
-		}
-
-		@Override
-		public void onRemove(Building unit) {
-			
-			// do nothing
-		}
-		
-		@Override
-		public void onDestroy(Building unit) {
-			
-			// do nothing
-		}
-	};
-	
 	public BuildingPlanner(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler) {
 	
 		this.unitInventory = unitInventory;
@@ -99,7 +73,6 @@ public class BuildingPlanner {
 		
 		this.projects.clear();
 		this.unitInventory.getUnderConstruction().addListener(constructionListener);
-		this.unitInventory.getBuildings().addListener(buildingListener);
 	}
 
 	public int queue(ConstructionType constructionType, TilePosition constructionSite, SCV worker) {
@@ -167,16 +140,24 @@ public class BuildingPlanner {
 	
 	public void run(int currentMinerals, int currentGas, int frameCount) {
 		
-		if (this.projects.size() > 0) {
-			logger.debug("build planner: frame: {}, projects: {}, minerals: {}, gas: {}", frameCount, projects.size(), currentMinerals, currentGas);
-		}
+		List<ConstructionProject> completed = new LinkedList<>();
 		
 		for (ConstructionProject project : this.projects) {
 			
-			project.sendOrInterrupt(new Message(currentMinerals, currentGas, frameCount));
-			logger.debug("   - available resources: minerals: {}, gas: {}", currentMinerals, currentGas);
-			currentGas -= project.getQueuedGas();
-			currentMinerals -= project.getQueuedMinerals();
+			if (project.isFinished()) {
+				
+				completed.add(project);
+			} else {
+				
+				project.sendOrInterrupt(new Message(currentMinerals, currentGas, frameCount));
+				currentGas -= project.getQueuedGas();
+				currentMinerals -= project.getQueuedMinerals();
+			}
+		}
+		
+		for (ConstructionProject project : completed) {
+			
+			this.projects.remove(project);
 		}
 	}
 }

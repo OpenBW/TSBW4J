@@ -11,6 +11,7 @@ import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MapAnalyzer;
@@ -39,6 +40,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private Building building;
 	private int queuedGas;
 	private int queuedMinerals;
+	private boolean finished;
 		
 	private final ReentrantLock lock = new ReentrantLock();
 	
@@ -63,6 +65,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		this.builder = builder;
 		
 		this.building = null;
+		this.finished = false;
 		this.queuedGas = this.constructionType.getGasPrice();
 		this.queuedMinerals = this.constructionType.getMineralPrice();
 	}
@@ -100,7 +103,6 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			
 			this.lock.unlock();
 		}
-		findConstructionSite();
 	}
 	
 	private void findConstructionSite() throws InterruptedException, SuspendExecution { 
@@ -114,7 +116,6 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				receive();
 			}
 		}
-		waitForResources();
 	}
 
 	/**
@@ -152,9 +153,8 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			if (message.getMinerals() >= this.constructionType.getMineralPrice() - estimatedMining) {
 			
 				logger.debug("estimated mining during travel: {}", estimatedMining);
-				logger.debug("Moving {} to {} to build {}...", this.builder, this.constructionSite, this.constructionType);
 				workerMovedToSite = this.builder.move(constructionSite.toPosition());
-				logger.debug(workerMovedToSite ? "success." : "failed.");
+				logger.debug("Moved {} to {} to build {}: {}", this.builder, this.constructionSite, this.constructionType, workerMovedToSite ? "success." : "failed.");
 			}
 			
 		} while (!workerMovedToSite);
@@ -163,8 +163,6 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			
 			message = receive();
 		}
-			
-		startConstruction();
 	}
 	
 	private void startConstruction() throws InterruptedException, SuspendExecution { 
@@ -176,9 +174,38 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				logger.debug("Command successful for {} to build {} at {}.", this.builder, this.constructionType, this.constructionSite);
 			} else {
 				logger.warn("{} could not build {} at {}: {}", this.builder, this.constructionType, this.constructionSite, interactionHandler.getLastError());
+				
+				if (!this.constructionType.canBuildHere(this.mapAnalyzer, this.builder, this.constructionSite)) {
+					logger.warn("construction site {} is not free anymore. Attempting to find new site...", this.constructionSite);
+					findConstructionSite();
+				}
 				receive();
 			}
 		} while (!success);
+	}
+	
+	private void waitForCompletion() throws InterruptedException, SuspendExecution { 
+		
+		receive();
+		while (this.building == null || !this.building.isCompleted() || !(this.builder.isIdle() || this.building instanceof Refinery)) {
+			
+			/* problem management */
+			if (!this.builder.exists()) {
+				
+				logger.warn("warning: {} should be constructing {} but is dead. Attempting to find new builder...", this.builder, this.constructionType);
+				findBuilder();
+			} else if (this.builder.isStuck()) {
+				
+				logger.warn("warning: {} should be constructing {} but is stuck.", this.builder, this.constructionType);
+			} else if (this.builder.isIdle()) {
+				
+				logger.warn("warning: {} should be constructing {} but is idle. Attempting to restart construction...", this.builder, this.constructionType);
+				startConstruction();
+			}
+			// if SCV is being attacked...
+			// if construction is being attacked...
+			receive();
+		}
 	}
 	
 	@Override
@@ -187,10 +214,13 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		logger.trace("spawned {}.", this);
 		
 		findBuilder();
-		while (this.building == null || !this.building.isCompleted()) {
-			receive();
-		}
+		findConstructionSite();
+		waitForResources();
+		startConstruction();
+		waitForCompletion();
 		
+		this.finished = true;
+		System.out.println("finished " + this.building);
 		this.unitInventory.getAvailableWorkers().add(this.builder);
 		
 		try {
@@ -221,9 +251,9 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return this.constructionType.equals(constructionType);
 	}
 	
-	public Building getBuilding() {
+	public boolean isBuilding(Building building) {
 		
-		return this.building;
+		return building.equals(this.building);
 	}
 	
 	public int getQueuedGas() {
@@ -255,5 +285,9 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 					this.constructionSite.getX() * 32 + this.constructionType.tileWidth() * 32, 
 					this.constructionSite.getY() * 32 + this.constructionType.tileHeight() * 32, Color.WHITE);
 		}
+	}
+
+	public boolean isFinished() {
+		return this.finished;
 	}
 }

@@ -21,7 +21,7 @@ public class FactoryConstruction extends ConstructionProvider {
 		TilePosition nextPosition = aroundHere;
 		TilePosition extensionPosition = new TilePosition(nextPosition.getX() + 4, nextPosition.getY() + 1);
 		
-		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), true) || !mapAnalyzer.getBWMap().canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, true); i++) {
+		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), builder, true) || !mapAnalyzer.getBWMap().canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, builder, true) || collidesWithConstruction(nextPosition, projects); i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
@@ -29,7 +29,7 @@ public class FactoryConstruction extends ConstructionProvider {
 				nextPosition = new TilePosition(aroundHere.getX() + x, aroundHere.getY() + y);
 				extensionPosition = new TilePosition(nextPosition.getX() + 3, nextPosition.getY() + 1);
 				
-				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), true) && mapAnalyzer.getBWMap().canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, true)
+				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), builder, true) && mapAnalyzer.getBWMap().canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, builder, true)
 						&& !collidesWithConstruction(nextPosition, projects)) {
 					
 					return nextPosition;

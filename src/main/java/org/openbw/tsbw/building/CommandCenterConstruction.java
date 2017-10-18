@@ -36,7 +36,7 @@ public class CommandCenterConstruction extends ConstructionProvider {
 		double distance = Double.MAX_VALUE;
 		for (TilePosition currentPosition : baseLocations) {
 			
-			if (mapAnalyzer.getBWMap().canBuildHere(currentPosition, super.getUnitType(), true)  && !collidesWithConstruction(currentPosition, projects) 
+			if (mapAnalyzer.getBWMap().canBuildHere(currentPosition, super.getUnitType(), builder, true)  && !collidesWithConstruction(currentPosition, projects) 
 					&& !this.startLocation.equals(currentPosition)) {
 				
 				double currentDistance = mapAnalyzer.getGroundDistance(mainPosition, currentPosition);

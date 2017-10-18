@@ -18,6 +18,7 @@ import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.PlayerUnit;
 import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.Unit;
+import org.openbw.tsbw.building.BarracksConstruction;
 import org.openbw.tsbw.building.BuildingPlanner;
 import org.openbw.tsbw.building.CommandCenterConstruction;
 import org.openbw.tsbw.building.ConstructionType;
@@ -115,6 +116,7 @@ public abstract class Bot {
         ConstructionType.Terran_Command_Center.setConstructionProvider(new CommandCenterConstruction(player1.getStartLocation()));
         ConstructionType.Terran_Factory.setConstructionProvider(new FactoryConstruction());
         ConstructionType.Terran_Supply_Depot.setConstructionProvider(new SupplyDepotConstruction());
+        ConstructionType.Terran_Barracks.setConstructionProvider(new BarracksConstruction());
         ConstructionType.Terran_Refinery.setConstructionProvider(new RefineryConstruction());
         
 		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.mapAnalyzer, this.interactionHandler);
@@ -149,7 +151,6 @@ public abstract class Bot {
 	public void onFrame() {
 		
 		int frameCount = interactionHandler.getFrameCount();
-		System.out.println(frameCount);
 //		long milliSeconds = System.currentTimeMillis();
 		
 		if (!gameStarted || frameCount < 1) {
@@ -167,8 +168,6 @@ public abstract class Bot {
 				scoutingStrategy.run(frameCount);
 			}
 			
-			buildingPlanner.run(player1.minerals(), player1.gas(), frameCount);
-			
 			// some simple interaction: enable global map drawing or change logging output
 			if (interactionHandler.isKeyPressed(Key.K_CONTROL) && interactionHandler.isKeyPressed(Key.K_T)) {
 				mapDrawer.setEnabled(!mapDrawer.isEnabled());
@@ -177,6 +176,8 @@ public abstract class Bot {
 				toggleCleanLogging();
 			}
 		}
+		
+		buildingPlanner.run(player1.minerals(), player1.gas(), frameCount);
 		
 		int availableMinerals = player1.minerals() - buildingPlanner.getQueuedMinerals();
 		int availableGas = player1.gas() - buildingPlanner.getQueuedGas();
@@ -309,10 +310,10 @@ public abstract class Bot {
 			UnitInventory inventory = unitInventories.get(((Refinery) unit).getPlayer());
 			inventory.getVespeneGeysers().stream().filter(r -> r.getId() == unit.getId()).findFirst().ifPresent(c -> inventory.getVespeneGeysers().remove(c));
 			onUnitCreate(unit);
-		} else if (unit instanceof VespeneGeyser) {
-			UnitInventory inventory = unitInventories.get(((Refinery) unit).getPlayer());
-			inventory.getRefineries().stream().filter(r -> r.getId() == unit.getId()).findFirst().ifPresent(c -> onUnitDestroy(c));
-			onUnitComplete(unit);
+//		} else if (unit instanceof VespeneGeyser) {
+//			UnitInventory inventory = unitInventories.get(((Refinery) unit).getPlayer());
+//			inventory.getRefineries().stream().filter(r -> r.getId() == unit.getId()).findFirst().ifPresent(c -> onUnitDestroy(c));
+//			onUnitComplete(unit);
 		} else {
 			onUnitMorph(unit);
 		}

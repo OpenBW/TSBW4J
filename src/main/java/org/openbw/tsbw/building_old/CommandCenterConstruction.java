@@ -36,7 +36,7 @@ public class CommandCenterConstruction extends DefaultConstruction {
 		double distance = Double.MAX_VALUE;
 		for (TilePosition currentPosition : baseLocations) {
 			
-			if (mapAnalyzer.getBWMap().canBuildHere(currentPosition, UnitType.Terran_Command_Center, true)  && !collidesWithConstruction(currentPosition, projects) 
+			if (mapAnalyzer.getBWMap().canBuildHere(currentPosition, UnitType.Terran_Command_Center, builder, true)  && !collidesWithConstruction(currentPosition, projects) 
 					&& !this.startLocation.equals(currentPosition)) {
 				
 				double currentDistance = mapAnalyzer.getGroundDistance(mainPosition, currentPosition);

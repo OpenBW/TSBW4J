@@ -10,10 +10,10 @@ import org.openbw.tsbw.UnitInventory;
 
 import bwta.Region;
 
-public class SupplyDepotConstruction extends ConstructionProvider {
+public class BarracksConstruction extends ConstructionProvider {
 
-	public SupplyDepotConstruction() {
-		super(UnitType.Terran_Supply_Depot);
+	public BarracksConstruction() {
+		super(UnitType.Terran_Barracks);
 	}
 
 	@Override
@@ -27,11 +27,8 @@ public class SupplyDepotConstruction extends ConstructionProvider {
 		}
 		TilePosition choke = region.getChokepoints().iterator().next().getCenter().toTilePosition();
 		TilePosition center = region.getCenter().toTilePosition();
-		int dx = center.getX() - choke.getX();
-		int dy = center.getY() - choke.getY();
-		double d = Math.sqrt(dx * dx + dy * dy);
 		
-		TilePosition position = new TilePosition((int)(center.getX() + dx * 10 / d), (int)(center.getY() + dy * 10 / d));
+		TilePosition position = new TilePosition((center.getX() + choke.getX()) / 2, (center.getY() + choke.getY()) / 2);
 		TilePosition nextPosition = position;
 		
 		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), builder, true) || collidesWithConstruction(nextPosition, projects); i++) {

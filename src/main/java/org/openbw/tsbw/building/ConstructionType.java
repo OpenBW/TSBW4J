@@ -79,6 +79,11 @@ public enum ConstructionType {
 		return this.constructionProvider.getBuildTile(unitInventory, mapAnalyzer, builder, projects, aroundHere);
 	}
 	
+	public boolean canBuildHere(MapAnalyzer mapAnalyzer, SCV builder, TilePosition position) {
+		
+		return mapAnalyzer.getBWMap().canBuildHere(position, this.unitType, builder, true);
+	}
+	
 	public int getMineralPrice() {
 		return this.unitType.mineralPrice();
 	}

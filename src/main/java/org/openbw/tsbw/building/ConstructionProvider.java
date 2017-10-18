@@ -32,13 +32,13 @@ public class ConstructionProvider {
 		
 		TilePosition nextPosition = aroundHere;
 		
-		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, this.unitType, true) || collidesWithConstruction(nextPosition, projects); i++) {
+		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, this.unitType, builder, true) || collidesWithConstruction(nextPosition, projects); i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(aroundHere.getX() + x, aroundHere.getY() + y);
-				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, this.unitType, true) && !collidesWithConstruction(nextPosition, projects)) {
+				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, this.unitType, builder, true) && !collidesWithConstruction(nextPosition, projects)) {
 					
 					return nextPosition;
 				}

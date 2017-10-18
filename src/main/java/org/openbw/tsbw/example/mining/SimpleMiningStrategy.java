@@ -110,15 +110,16 @@ public class SimpleMiningStrategy implements MiningStrategy {
 		
 		boolean shift = false;
 		if (worker.isCarryingMinerals()) {
-			worker.returnCargo();
+			
+			if (!worker.returnCargo()) {
+				logger.debug("return cargo command for {} failed with error {}", worker, interactionHandler.getLastError());
+			}
 			shift = true;
 		}
 		
 		if (targetPatch.isVisible()) {
 			
-			boolean success = worker.gather(targetPatch, shift);
-			
-			if (!success) {
+			if (!worker.gather(targetPatch, shift)) {
 				logger.debug("gather command for {} failed with error {}", worker, interactionHandler.getLastError());
 			}
 		} else {

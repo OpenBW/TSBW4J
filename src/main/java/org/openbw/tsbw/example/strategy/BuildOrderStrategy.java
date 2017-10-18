@@ -16,7 +16,6 @@ import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.building.BuildingPlanner;
 import org.openbw.tsbw.building.ConstructionType;
-import org.openbw.tsbw.building_old.Construction;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 	
@@ -63,7 +62,7 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 		@Override
 		public void onAdd(Building building) {
 			
-			logger.info("building {} was added.", building);
+			logger.info("frame {}: building {} was added.", interactionHandler.getFrameCount(), building);
 			
 			// if our refinery finished, add an additional workers to mine gas from it
 			if (building instanceof Refinery) {

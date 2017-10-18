@@ -80,7 +80,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			if (this.constructionSite == null) {
 				
 				Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
-				this.builder = unitInventory.getAvailableWorkers().stream().max(comp).get();
+				this.builder = unitInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).get();
 				
 			/* construction site defined: take closest worker */
 			} else {
@@ -88,10 +88,13 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				double distance = Double.MAX_VALUE;
 				
 				for (SCV worker : this.unitInventory.getAvailableWorkers()) {
+					
+					if (!worker.isGatheringGas()) {
 					double currentDistance = mapAnalyzer.getGroundDistance(worker.getTilePosition(), constructionSite);
-					if (currentDistance < distance) {
-						distance = currentDistance;
-						this.builder = worker;
+						if (currentDistance < distance) {
+							distance = currentDistance;
+							this.builder = worker;
+						}
 					}
 				}
 			}

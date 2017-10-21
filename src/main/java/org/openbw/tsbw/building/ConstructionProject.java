@@ -2,7 +2,6 @@ package org.openbw.tsbw.building;
 
 import java.util.Comparator;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,9 +16,13 @@ import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.analysis.PPF2;
+import org.openbw.tsbw.building.action.Action;
+import org.openbw.tsbw.building.action.BuildAction;
+import org.openbw.tsbw.building.action.MoveAction;
 
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 
 public class ConstructionProject extends BasicActor<Message, Void> {
@@ -27,6 +30,8 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private static final Logger logger = LogManager.getLogger();
 	
 	private static final long serialVersionUID = 1L;
+
+	private static final int LATENCY = 3;
 
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
@@ -43,6 +48,25 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private boolean finished;
 		
 	private final ReentrantLock lock = new ReentrantLock();
+	private Action nextActionToExecute;
+	private boolean actionResult;
+	
+	public void unpark() {
+		
+		if (this.nextActionToExecute != null) {
+			this.actionResult = this.nextActionToExecute.execute();
+			this.nextActionToExecute = null;
+		}
+		Strand.unpark(this.getStrand());
+	}
+	
+	private boolean executeAction(Action action) throws InterruptedException, SuspendExecution {
+	
+		this.nextActionToExecute = action;
+		Strand.park(this);
+		
+		return this.actionResult;
+	}
 	
 	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
 		
@@ -64,6 +88,8 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		this.constructionSite = constructionSite;
 		this.builder = builder;
 		
+		this.nextActionToExecute = null;
+		this.actionResult = false;
 		this.building = null;
 		this.finished = false;
 		this.queuedGas = this.constructionType.getGasPrice();
@@ -102,6 +128,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				receive();
 			} else {
 				this.unitInventory.getAvailableWorkers().remove(this.builder);
+				logger.debug("{}: found builder {} and removed from available workers.", this.interactionHandler.getFrameCount(), this.builder);
 			}
 			
 			this.lock.unlock();
@@ -110,7 +137,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	
 	private void findConstructionSite() throws InterruptedException, SuspendExecution { 
 		
-		while (this.constructionSite == null) {
+		do {
 			
 			this.lock.lock();
 			this.constructionSite = this.constructionType.getBuildTile(builder, unitInventory, mapAnalyzer, projects);
@@ -118,7 +145,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			if (this.constructionSite == null) {
 				receive();
 			}
-		}
+		} while (this.constructionSite == null);
 	}
 
 	/**
@@ -156,8 +183,8 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			if (message.getMinerals() >= this.constructionType.getMineralPrice() - estimatedMining) {
 			
 				logger.debug("estimated mining during travel: {}", estimatedMining);
-				workerMovedToSite = this.builder.move(constructionSite.toPosition());
-				logger.debug("Moved {} to {} to build {}: {}", this.builder, this.constructionSite, this.constructionType, workerMovedToSite ? "success." : "failed.");
+				workerMovedToSite = this.executeAction(new MoveAction(this.builder, constructionSite.toPosition()));
+				logger.debug("{}: Moved {} to {} to build {}: {}", this.interactionHandler.getFrameCount(), this.builder, this.constructionSite, this.constructionType, workerMovedToSite ? "success." : "failed.");
 			}
 			
 		} while (!workerMovedToSite);
@@ -172,7 +199,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		
 		boolean success = false;
 		do {
-			success = this.constructionType.build(this.builder, this.constructionSite);
+			success = this.executeAction(new BuildAction(this.builder, this.constructionSite, this.constructionType));
 			if (success) {
 				logger.debug("Command successful for {} to build {} at {}.", this.builder, this.constructionType, this.constructionSite);
 			} else {
@@ -185,11 +212,16 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				receive();
 			}
 		} while (!success);
+		
+		int frame = interactionHandler.getFrameCount();
+		Message message;
+		do {
+			message = receive();
+		} while (message.getFrame() >= frame + LATENCY);
 	}
 	
-	private void waitForCompletion() throws InterruptedException, SuspendExecution { 
+	private void waitForCompletion() throws InterruptedException, SuspendExecution {
 		
-		receive();
 		while (this.building == null || !this.building.isCompleted() || !(this.builder.isIdle() || this.building instanceof Refinery)) {
 			
 			/* problem management */
@@ -204,9 +236,13 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				
 				logger.warn("warning: {} should be constructing {} but is idle. Attempting to restart construction...", this.builder, this.constructionType);
 				startConstruction();
+			} else if (!this.builder.isConstructing() && !this.builder.isMoving()) {
+				
+				logger.warn("warning: {} should be constructing {} but is not. Attempting to restart...", this.builder, this.constructionType);
+				startConstruction();
 			}
-			// if SCV is being attacked...
-			// if construction is being attacked...
+			// TODO if SCV is being attacked...
+			// TODO if construction is being attacked...
 			receive();
 		}
 	}
@@ -214,26 +250,34 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	@Override
 	protected Void doRun() throws InterruptedException, SuspendExecution { 
 		
-		logger.trace("spawned {}.", this);
+		logger.trace("{}: spawned {}.", this.interactionHandler.getFrameCount(), this);
 		
 		findBuilder();
+		System.out.println("found builder.");
 		findConstructionSite();
+		System.out.println("found site.");
 		waitForResources();
+		System.out.println("got resources.");
 		startConstruction();
+		System.out.println("started construction.");
 		waitForCompletion();
+		System.out.println("completed.");
 		
 		this.finished = true;
 		System.out.println("finished " + this.building);
-		this.unitInventory.getAvailableWorkers().add(this.builder);
-		
-		try {
-			this.join();
-		} catch (ExecutionException e) {
-			logger.error("error on join: {}", e.getMessage(), e);
-			e.printStackTrace();
-		}
-	    logger.trace("killed {}.", this);
+//		try {
+//			this.join();
+//		} catch (ExecutionException e) {
+//			logger.error("error on join: {}", e.getMessage(), e);
+//			e.printStackTrace();
+//		}
+//	    logger.trace("killed {}.", this);
 		return null;
+	}
+	
+	public void releaseBuilder() {
+		
+		this.unitInventory.getAvailableWorkers().add(this.builder);
 	}
 	
 	public boolean collidesWithConstruction(TilePosition position) {
@@ -254,7 +298,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return this.constructionType.equals(constructionType);
 	}
 	
-	public boolean isBuilding(Building building) {
+	public boolean isConstructing(Building building) {
 		
 		return building.equals(this.building);
 	}
@@ -293,4 +337,32 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	public boolean isFinished() {
 		return this.finished;
 	}
+	
+//	private void abandonIfCriticallyWounded() {
+//	for (Building building : unitInventory.getUnderConstruction()) {
+//		
+//		SCV worker = building.getBuildUnit();
+//		if (worker != null && worker.getHitPoints() < 25) {
+//			worker.haltConstruction();
+//			unitInventory.getMineralWorkers().add(worker);
+//		}
+//	}
+//}
+//
+//private void finishAbandonedConstructions() {
+//	
+//	for (Building unfinished : unitInventory.getUnderConstruction()) {
+//		if (unfinished.getBuildUnit() == null && unitInventory.getAvailableWorkers().size() > 3) {
+//			
+//			Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
+//			SCV worker = unitInventory.getAvailableWorkers().stream().max(comp).get();
+//			
+//			unitInventory.getAvailableWorkers().move(worker, this.constructorSquad);
+//			this.queue.stream().filter(c -> c.getConstructionSite().equals(unfinished.getTilePosition())).findFirst().ifPresent(b -> b.setAssignedWorker(worker));
+//			
+//			worker.resumeBuilding(unfinished);
+//			logger.info("found unfinished building {}. attempting to resume with worker {}", unfinished, worker);
+//		}
+//	}
+//}
 }

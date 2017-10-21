@@ -226,6 +226,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 		// build supply depots as required: if available supply is less than some threshold queue up a supply depot to be built.
 		// in this case, we make the threshold depend on the number of command centers and barracks we have.
 		int threshold = myInventory.getCommandCenters().size() * 4 + myInventory.getBarracks().size() * 4;
+		
 		if (availableSupply + buildingPlanner.getCount(ConstructionType.Terran_Supply_Depot) * UnitType.Terran_Supply_Depot.supplyProvided() <= threshold) {
 
 			buildingPlanner.queue(ConstructionType.Terran_Supply_Depot);

@@ -241,7 +241,11 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				logger.warn("warning: {} should be constructing {} but is not. Attempting to restart...", this.builder, this.constructionType);
 				startConstruction();
 			}
-			// TODO if SCV is being attacked...
+			// if SCV is being attacked...
+			if (this.builder.getHitPoints() < 25) {
+				releaseBuilder();
+				// TODO potentially: findBuilder();
+			}
 			// TODO if construction is being attacked...
 			receive();
 		}
@@ -253,25 +257,18 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		logger.trace("{}: spawned {}.", this.interactionHandler.getFrameCount(), this);
 		
 		findBuilder();
-		System.out.println("found builder.");
+		logger.trace("found builder.");
 		findConstructionSite();
-		System.out.println("found site.");
+		logger.trace("found site.");
 		waitForResources();
-		System.out.println("got resources.");
+		logger.trace("got resources.");
 		startConstruction();
-		System.out.println("started construction.");
+		logger.trace("started construction.");
 		waitForCompletion();
-		System.out.println("completed.");
+		logger.trace("completed.");
 		
 		this.finished = true;
-		System.out.println("finished " + this.building);
-//		try {
-//			this.join();
-//		} catch (ExecutionException e) {
-//			logger.error("error on join: {}", e.getMessage(), e);
-//			e.printStackTrace();
-//		}
-//	    logger.trace("killed {}.", this);
+		logger.trace("finished " + this.building);
 		return null;
 	}
 	

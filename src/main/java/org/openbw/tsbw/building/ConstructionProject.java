@@ -52,7 +52,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private boolean actionResult;
 	
 	public void unpark() {
-		
+	
 		if (this.nextActionToExecute != null) {
 			this.actionResult = this.nextActionToExecute.execute();
 			this.nextActionToExecute = null;
@@ -101,37 +101,40 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		while(this.builder == null) {
 			
 			this.lock.lock();
-			
-			/* no construction site yet: take strongest worker */
-			if (this.constructionSite == null) {
+			try {
 				
-				Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
-				this.builder = unitInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).get();
-				
-			/* construction site defined: take closest worker */
-			} else {
-				
-				double distance = Double.MAX_VALUE;
-				
-				for (SCV worker : this.unitInventory.getAvailableWorkers()) {
+				/* no construction site yet: take strongest worker */
+				if (this.constructionSite == null) {
 					
-					if (!worker.isGatheringGas()) {
-					double currentDistance = mapAnalyzer.getGroundDistance(worker.getTilePosition(), constructionSite);
-						if (currentDistance < distance) {
-							distance = currentDistance;
-							this.builder = worker;
+					Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
+					this.builder = unitInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).get();
+					
+				/* construction site defined: take closest worker */
+				} else {
+					
+					double distance = Double.MAX_VALUE;
+					
+					for (SCV worker : this.unitInventory.getAvailableWorkers()) {
+						
+						if (!worker.isGatheringGas()) {
+						double currentDistance = mapAnalyzer.getGroundDistance(worker.getTilePosition(), constructionSite);
+							if (currentDistance < distance) {
+								distance = currentDistance;
+								this.builder = worker;
+							}
 						}
 					}
 				}
-			}
-			if (this.builder == null) {
-				receive();
-			} else {
-				this.unitInventory.getAvailableWorkers().remove(this.builder);
-				logger.debug("{}: found builder {} and removed from available workers.", this.interactionHandler.getFrameCount(), this.builder);
-			}
+				if (this.builder == null) {
+					receive();
+				} else {
+					this.unitInventory.getAvailableWorkers().remove(this.builder);
+					logger.debug("{}: found builder {} and removed from available workers.", this.interactionHandler.getFrameCount(), this.builder);
+				}
+			} finally {
 			
-			this.lock.unlock();
+				this.lock.unlock();
+			}
 		}
 	}
 	
@@ -140,8 +143,11 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		do {
 			
 			this.lock.lock();
-			this.constructionSite = this.constructionType.getBuildTile(builder, unitInventory, mapAnalyzer, projects);
-			this.lock.unlock();
+			try {
+				this.constructionSite = this.constructionType.getBuildTile(builder, unitInventory, mapAnalyzer, projects);
+			} finally {
+				this.lock.unlock();
+			}
 			if (this.constructionSite == null) {
 				receive();
 			}
@@ -232,6 +238,8 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			} else if (this.builder.isStuck()) {
 				
 				logger.warn("warning: {} should be constructing {} but is stuck.", this.builder, this.constructionType);
+				this.executeAction(new MoveAction(this.builder, constructionSite.toPosition()));
+				// TODO check if still stuck after a couple of frames. if yes, get new builder and then release old one.
 			} else if (this.builder.isIdle()) {
 				
 				logger.warn("warning: {} should be constructing {} but is idle. Attempting to restart construction...", this.builder, this.constructionType);
@@ -335,17 +343,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return this.finished;
 	}
 	
-//	private void abandonIfCriticallyWounded() {
-//	for (Building building : unitInventory.getUnderConstruction()) {
-//		
-//		SCV worker = building.getBuildUnit();
-//		if (worker != null && worker.getHitPoints() < 25) {
-//			worker.haltConstruction();
-//			unitInventory.getMineralWorkers().add(worker);
-//		}
-//	}
-//}
-//
+// TODO
 //private void finishAbandonedConstructions() {
 //	
 //	for (Building unfinished : unitInventory.getUnderConstruction()) {

@@ -80,13 +80,13 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 			for (int y = 0; y < bwMap.mapHeight(); y++) {
 				
 				map[x][y] = 2;
-				if (highValueRegions.contains(mapAnalyzer.getRegion(x * 32, y * 32))) {
+				if (highValueRegions.contains(mapAnalyzer.getRegion(x, y))) {
 					map[x][y] += 1;
 				}
-				if (veryHighValueRegions.contains(mapAnalyzer.getRegion(x * 32, y * 32))) {
+				if (veryHighValueRegions.contains(mapAnalyzer.getRegion(x, y))) {
 					map[x][y] += 2;
 				}
-				if (mapAnalyzer.getRegion(this.interactionHandler.self().getStartLocation().toPosition()).equals(mapAnalyzer.getRegion(x * 32, y * 32))) {
+				if (mapAnalyzer.getRegion(this.interactionHandler.self().getStartLocation().toPosition()).equals(mapAnalyzer.getRegion(x, y))) {
 					map[x][y] -= 0.5;
 				}
 				initialMap[x][y] = map[x][y];

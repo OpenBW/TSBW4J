@@ -12,9 +12,17 @@ repositories {
     }
 }
 
-/*
- * "extended" contains dependencies not required to run a bot in a tournament.
- */
+sourceSets {
+	main {
+		output.classesDir = 'build/classes'
+		output.resourcesDir = 'build/classes'
+	}
+    test {
+		output.classesDir = 'build/classes'
+		output.resourcesDir = 'build/classes'
+	}
+}
+
 dependencies {
 	compile files('../BWAPI4J/BWAPI4J/build/libs/BWAPI4J.jar')
 	compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.7'

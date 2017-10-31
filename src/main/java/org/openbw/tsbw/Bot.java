@@ -259,7 +259,7 @@ public abstract class Bot {
 		if (unit instanceof PlayerUnit) {
 			
 			PlayerUnit playerUnit = (PlayerUnit) unit;
-			if (!playerUnit.getPlayer().equals(this.interactionHandler.self())) {
+			if (!this.interactionHandler.self().equals(playerUnit.getPlayer())) {
 				
 				addToInventory(unit, this.unitInventories.get(playerUnit.getPlayer()), interactionHandler.getFrameCount());
 			}

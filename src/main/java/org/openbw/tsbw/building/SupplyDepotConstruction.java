@@ -21,7 +21,7 @@ public class SupplyDepotConstruction extends ConstructionProvider {
 	
 		Region region;
 		if (unitInventory.getMain() == null) {
-			region = mapAnalyzer.getRegion(unitInventory.getAvailableWorkers().first().getPosition());
+			region = mapAnalyzer.getRegion(builder.getPosition());
 		} else {
 			region = mapAnalyzer.getRegion(unitInventory.getMain().getPosition());
 		}

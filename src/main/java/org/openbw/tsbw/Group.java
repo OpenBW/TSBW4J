@@ -2,13 +2,13 @@ package org.openbw.tsbw;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.unit.Unit;
 
-public class Group<T extends Unit> extends TreeSet<T> {
+public class Group<T extends Unit> extends ConcurrentSkipListSet<T> {
 
 	private static final long serialVersionUID = 4561633085234598587L;
 	private static final Logger logger = LogManager.getLogger();

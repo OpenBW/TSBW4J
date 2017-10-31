@@ -2,8 +2,8 @@ package org.openbw.tsbw;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -48,7 +48,7 @@ public class UnitInventory {
 	
 	public UnitInventory() {
 		
-	    this.allUnits = new HashSet<PlayerUnit>();
+	    this.allUnits = ConcurrentHashMap.newKeySet();
 		this.destroyedUnits = new Group<PlayerUnit>();
 		this.scouts = new Squad<MobileUnit>("scouts");
 		this.mineralWorkers = new Squad<SCV>("mineral mining workers");

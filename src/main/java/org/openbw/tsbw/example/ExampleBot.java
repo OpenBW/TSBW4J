@@ -34,7 +34,7 @@ public class ExampleBot extends Bot {
 		ScoutingFactory scoutingFactory = new DefaultScoutingFactory();
 		
 		// try changing the Type from DUMMY to BUILD_ORDER to use a different strategy
-		StrategyFactory strategyFactory = new DefaultStrategyFactory(Type.DUMMY);
+		StrategyFactory strategyFactory = new DefaultStrategyFactory(Type.BUILD_ORDER);
 		
 		ExampleBot exampleBot = new ExampleBot(miningFactory, scoutingFactory, strategyFactory);
 		

@@ -8,9 +8,12 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openbw.bwapi4j.BW;
 import org.openbw.bwapi4j.BWMap;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.type.UnitType;
+import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.bwapi4j.util.Pair;
 
 import bwta.BWTA;
@@ -18,18 +21,19 @@ import bwta.BaseLocation;
 import bwta.Chokepoint;
 import bwta.Region;
 
-// TODO un-static this
 public class MapAnalyzer {
 
 	private static final Logger logger = LogManager.getLogger();
 
+	private BW bw;
 	private BWMap bwMap;
 	private BWTA bwta;
 	private Map<Chokepoint, Integer> chokePoints = new HashMap<Chokepoint, Integer>();
 	
-	public MapAnalyzer(BWMap bwMap, BWTA bwta) {
+	public MapAnalyzer(BW bw, BWTA bwta) {
 		
-		this.bwMap = bwMap;
+		this.bw = bw;
+		this.bwMap = bw.getBWMap();
 		this.bwta = bwta;
 	}
 	
@@ -164,6 +168,18 @@ public class MapAnalyzer {
 	public List<BaseLocation> getStartLocations() {
 		
 		return bwta.getStartLocations();
+	}
+
+	/**
+	 * Determines whether a given unit type can be built at a given position considering all units on the map.
+	 * @param position
+	 * @param unitType
+	 * @param builder to exclude from the check
+	 * @return true if unit type can be built, false else
+	 */
+	public boolean canBuildHere(TilePosition position, UnitType unitType, SCV builder) {
+		
+		return bw.canBuildHere(position, unitType, builder);
 	}
 
 }

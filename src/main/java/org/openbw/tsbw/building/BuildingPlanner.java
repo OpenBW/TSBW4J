@@ -35,7 +35,7 @@ public class BuildingPlanner {
 
 	private static final Logger logger = LogManager.getLogger();
 	
-	private UnitInventory unitInventory;
+	private UnitInventory myInventory;
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
 	
@@ -59,7 +59,7 @@ public class BuildingPlanner {
 						return;
 					}
 			}
-			if (building != unitInventory.getMain()) {
+			if (building != myInventory.getMain()) {
 				logger.warn("was informed that {} is created, but can't find the construction project.", building);
 			}
 		}
@@ -77,9 +77,9 @@ public class BuildingPlanner {
 		}
 	};
 	
-	public BuildingPlanner(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler) {
+	public BuildingPlanner(UnitInventory myInventory, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler) {
 	
-		this.unitInventory = unitInventory;
+		this.myInventory = myInventory;
 		this.mapAnalyzer = mapAnalyzer;
 		this.interactionHandler = interactionHandler;
 		this.projects = new LinkedList<>();
@@ -88,12 +88,12 @@ public class BuildingPlanner {
 	public void initialize() {
 		
 		this.projects.clear();
-		this.unitInventory.getUnderConstruction().addListener(constructionListener);
+		this.myInventory.getUnderConstruction().addListener(constructionListener);
 	}
 
 	public int queue(ConstructionType constructionType, TilePosition constructionSite, SCV worker) {
 		
-		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.unitInventory, this.projects, constructionSite, worker);
+		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite, worker);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();
 		return projects.size();
@@ -101,7 +101,7 @@ public class BuildingPlanner {
 
 	public int queue(ConstructionType constructionType, TilePosition constructionSite) {
 		
-		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.unitInventory, this.projects, constructionSite);
+		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();
 		return projects.size();
@@ -110,7 +110,7 @@ public class BuildingPlanner {
 	public int queue(ConstructionType constructionType) {
 		
 		logger.debug("Queueing {}...", constructionType);
-		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.unitInventory, this.projects);
+		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();
 		return projects.size();

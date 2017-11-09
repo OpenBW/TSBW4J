@@ -95,7 +95,7 @@ public abstract class Bot {
 		
 		this.interactionHandler = bw.getInteractionHandler();
         this.mapDrawer = bw.getMapDrawer();
-        this.mapAnalyzer = new MapAnalyzer(bw.getBWMap(), new BWTA());
+        this.mapAnalyzer = new MapAnalyzer(bw, new BWTA());
         
 		this.gameStarted = false;
 		

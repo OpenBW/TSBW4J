@@ -35,7 +35,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
-	private UnitInventory unitInventory;
+	private UnitInventory myInventory;
 	private Queue<ConstructionProject> projects;
 	
 	private ConstructionType constructionType;
@@ -68,22 +68,22 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return this.actionResult;
 	}
 	
-	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory unitInventory, Queue<ConstructionProject> projects) {
+	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects) {
 		
-		this(constructionType, mapAnalyzer, interactionHandler, unitInventory, projects, null, null);
+		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, null, null);
 	}
 	
-	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory unitInventory, Queue<ConstructionProject> projects, TilePosition constructionSite) {
+	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite) {
 		
-		this(constructionType, mapAnalyzer, interactionHandler, unitInventory, projects, constructionSite, null);
+		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, constructionSite, null);
 	}
 	
-	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory unitInventory, Queue<ConstructionProject> projects, TilePosition constructionSite, SCV builder) {
+	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite, SCV builder) {
 		
 		this.constructionType = constructionType;
 		this.mapAnalyzer = mapAnalyzer;
 		this.interactionHandler = interactionHandler;
-		this.unitInventory = unitInventory;
+		this.myInventory = myInventory;
 		this.projects = projects;
 		this.constructionSite = constructionSite;
 		this.builder = builder;
@@ -107,14 +107,14 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				if (this.constructionSite == null) {
 					
 					Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
-					this.builder = unitInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).get();
+					this.builder = myInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).get();
 					
 				/* construction site defined: take closest worker */
 				} else {
 					
 					double distance = Double.MAX_VALUE;
 					
-					for (SCV worker : this.unitInventory.getAvailableWorkers()) {
+					for (SCV worker : this.myInventory.getAvailableWorkers()) {
 						
 						if (!worker.isGatheringGas()) {
 						double currentDistance = mapAnalyzer.getGroundDistance(worker.getTilePosition(), constructionSite);
@@ -128,7 +128,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				if (this.builder == null) {
 					receive();
 				} else {
-					this.unitInventory.getAvailableWorkers().remove(this.builder);
+					this.myInventory.getAvailableWorkers().remove(this.builder);
 					logger.debug("{}: found builder {} and removed from available workers.", this.interactionHandler.getFrameCount(), this.builder);
 				}
 			} finally {
@@ -144,7 +144,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			
 			this.lock.lock();
 			try {
-				this.constructionSite = this.constructionType.getBuildTile(builder, unitInventory, mapAnalyzer, projects);
+				this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects);
 			} finally {
 				this.lock.unlock();
 			}
@@ -181,7 +181,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			
 			// for performance reasons: estimated mining only needs to be calculated if we don't have enough minerals anyways
 			if (message.getMinerals() < this.constructionType.getMineralPrice()) {
-				estimatedMining = estimateMineralsMinedDuringTravel(this.unitInventory.getMineralWorkers().size() - 1);
+				estimatedMining = estimateMineralsMinedDuringTravel(this.myInventory.getMineralWorkers().size() - 1);
 			}
 			
 			// TODO estimate gas mining as well and adjust moveout accordingly
@@ -282,7 +282,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	
 	public void releaseBuilder() {
 		
-		this.unitInventory.getAvailableWorkers().add(this.builder);
+		this.myInventory.getAvailableWorkers().add(this.builder);
 	}
 	
 	public boolean collidesWithConstruction(TilePosition position) {

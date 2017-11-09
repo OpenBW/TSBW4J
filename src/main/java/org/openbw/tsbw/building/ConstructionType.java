@@ -71,17 +71,17 @@ public enum ConstructionType {
 		this.constructionProvider = constructionProvider;
 	}
 	
-	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects) {
-		return constructionProvider.getBuildTile(unitInventory, mapAnalyzer, builder, projects);
+	public TilePosition getBuildTile(SCV builder, UnitInventory myInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects) {
+		return constructionProvider.getBuildTile(myInventory, mapAnalyzer, builder, projects);
 	}
 	
-	public TilePosition getBuildTile(SCV builder, UnitInventory unitInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects, TilePosition aroundHere) {
-		return this.constructionProvider.getBuildTile(unitInventory, mapAnalyzer, builder, projects, aroundHere);
+	public TilePosition getBuildTile(SCV builder, UnitInventory myInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+		return this.constructionProvider.getBuildTile(myInventory, mapAnalyzer, builder, projects, aroundHere);
 	}
 	
 	public boolean canBuildHere(MapAnalyzer mapAnalyzer, SCV builder, TilePosition position) {
 		
-		return mapAnalyzer.getBWMap().canBuildHere(position, this.unitType, builder, true);
+		return mapAnalyzer.canBuildHere(position, this.unitType, builder);
 	}
 	
 	public int getMineralPrice() {

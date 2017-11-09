@@ -21,24 +21,24 @@ public class ConstructionProvider {
 		return this.unitType;
 	}
 
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects) {
+	public TilePosition getBuildTile(UnitInventory myInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects) {
 		
-		TilePosition position = unitInventory.getMain().getInitialTilePosition();
+		TilePosition position = myInventory.getMain().getInitialTilePosition();
 		
-		return getBuildTile(unitInventory, mapAnalyzer, builder, projects, position);
+		return getBuildTile(myInventory, mapAnalyzer, builder, projects, position);
 	}
 	
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+	public TilePosition getBuildTile(UnitInventory myInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects, TilePosition aroundHere) {
 		
 		TilePosition nextPosition = aroundHere;
 		
-		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, this.unitType, builder, true) || collidesWithConstruction(nextPosition, projects); i++) {
+		for (int i = 0; !mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) || collidesWithConstruction(nextPosition, projects); i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(aroundHere.getX() + x, aroundHere.getY() + y);
-				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, this.unitType, builder, true) && !collidesWithConstruction(nextPosition, projects)) {
+				if (mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) && !collidesWithConstruction(nextPosition, projects)) {
 					
 					return nextPosition;
 				}

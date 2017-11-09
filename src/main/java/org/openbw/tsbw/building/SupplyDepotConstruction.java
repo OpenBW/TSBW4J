@@ -34,13 +34,13 @@ public class SupplyDepotConstruction extends ConstructionProvider {
 		TilePosition position = new TilePosition((int)(center.getX() + dx * 10 / d), (int)(center.getY() + dy * 10 / d));
 		TilePosition nextPosition = position;
 		
-		for (int i = 0; !mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), builder, true) || collidesWithConstruction(nextPosition, projects); i++) {
+		for (int i = 0; !mapAnalyzer.canBuildHere(nextPosition, super.getUnitType(), builder) || collidesWithConstruction(nextPosition, projects); i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(position.getX() + x, position.getY() + y);
-				if (mapAnalyzer.getBWMap().canBuildHere(nextPosition, super.getUnitType(), builder, true) && !collidesWithConstruction(nextPosition, projects)) {
+				if (mapAnalyzer.canBuildHere(nextPosition, super.getUnitType(), builder) && !collidesWithConstruction(nextPosition, projects)) {
 					
 					return nextPosition;
 				}

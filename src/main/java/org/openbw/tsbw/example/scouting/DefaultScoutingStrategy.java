@@ -61,7 +61,8 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 		initialMap = new double[bwMap.mapWidth()][bwMap.mapHeight()];
 	}
 	
-	public void initialize(Squad<MobileUnit> squad, UnitInventory unitInventory) {
+	@Override
+	public void initialize(Squad<MobileUnit> squad, UnitInventory myInventory, UnitInventory enemyInventory) {
 		
 		this.squad = squad;
 		
@@ -112,6 +113,7 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 	}
 	
 	private int lastFrame;
+	@Override
 	public void run(int frame) {
 		
 		if (squad.size() > 0) {

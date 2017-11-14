@@ -126,7 +126,7 @@ public abstract class Bot {
 		this.miningStrategy = this.miningFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.gameStrategy = strategyFactory.getStrategy(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
-		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1));
+		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1), this.unitInventories.get(player2));
 		this.gameStrategy.initialize();
 		
 		this.interactionHandler.enableLatCom(false);

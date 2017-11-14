@@ -20,7 +20,7 @@ public abstract class ScoutingStrategy {
 		this.interactionHandler = interactionHandler;
 	}
 	
-	public abstract void initialize(Squad<MobileUnit> squad, UnitInventory unitInventory);
+	public abstract void initialize(Squad<MobileUnit> squad, UnitInventory myInventory, UnitInventory enemyInventory);
 
 	public abstract void run(int frame);
 }

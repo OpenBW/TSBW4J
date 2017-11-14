@@ -25,7 +25,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 
-public class ConstructionProject extends BasicActor<Message, Void> {
+class ConstructionProject extends BasicActor<Message, Void> {
 
 	private static final Logger logger = LogManager.getLogger();
 	
@@ -51,7 +51,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private Action nextActionToExecute;
 	private boolean actionResult;
 	
-	public void unpark() {
+	void unpark() {
 	
 		if (this.nextActionToExecute != null) {
 			this.actionResult = this.nextActionToExecute.execute();
@@ -68,17 +68,17 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return this.actionResult;
 	}
 	
-	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects) {
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects) {
 		
 		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, null, null);
 	}
 	
-	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite) {
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite) {
 		
 		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, constructionSite, null);
 	}
 	
-	public ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite, SCV builder) {
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite, SCV builder) {
 		
 		this.constructionType = constructionType;
 		this.mapAnalyzer = mapAnalyzer;
@@ -170,7 +170,30 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return estimatedMiningDuringTravel;
 	}
 	
-	private void waitForResources() throws InterruptedException, SuspendExecution { 
+	private void travelToConstructionSite() throws InterruptedException, SuspendExecution {
+		
+		int frame = interactionHandler.getFrameCount();
+		
+		while (this.builder.getDistance(this.constructionSite.toPosition()) > this.builder.getSightRange() - 96) {
+			
+			receive();
+			int currentFrame = interactionHandler.getFrameCount();
+			
+			if (this.builder.isIdle() && currentFrame > frame) {
+				
+				logger.warn("{} stopped moving. Issuing new move order to {}...", this.builder, this.constructionSite);
+				this.executeAction(new MoveAction(this.builder, this.constructionSite.toPosition()));
+				frame = currentFrame + LATENCY + 2;
+			} else if (!this.builder.exists()) {
+				
+				logger.warn("{} died. Attempting to find new builder...", this.builder);
+				findBuilder();
+			}
+			logger.error("moving..." + this.builder.getSightRange());
+		}
+	}
+	
+	private void waitForResources() throws InterruptedException, SuspendExecution {
 		
 		boolean workerMovedToSite = false;
 		Message message;
@@ -270,6 +293,8 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		logger.trace("found site.");
 		waitForResources();
 		logger.trace("got resources.");
+		travelToConstructionSite();
+		logger.trace("arrived at construction site.");
 		startConstruction();
 		logger.trace("started construction.");
 		waitForCompletion();
@@ -280,12 +305,12 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return null;
 	}
 	
-	public void releaseBuilder() {
+	void releaseBuilder() {
 		
 		this.myInventory.getAvailableWorkers().add(this.builder);
 	}
 	
-	public boolean collidesWithConstruction(TilePosition position) {
+	boolean collidesWithConstruction(TilePosition position) {
 		
 		if (this.constructionSite != null) {
 			
@@ -298,39 +323,39 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return false;
 	}
 
-	public boolean isOfType(ConstructionType constructionType) {
+	boolean isOfType(ConstructionType constructionType) {
 		
 		return this.constructionType.equals(constructionType);
 	}
 	
-	public boolean isConstructing(Building building) {
+	boolean isConstructing(Building building) {
 		
 		return building.equals(this.building);
 	}
 	
-	public int getQueuedGas() {
+	int getQueuedGas() {
 		
 		return this.queuedGas;
 	}
 	
-	public int getQueuedMinerals() {
+	int getQueuedMinerals() {
 		
 		return this.queuedMinerals;
 	}
 
-	public boolean hasBuilt(SCV buildUnit) {
+	boolean hasBuilt(SCV buildUnit) {
 		
 		return buildUnit.equals(builder);
 	}
 	
-	public void constructionStarted(Building building) {
+	void constructionStarted(Building building) {
 		
 		this.queuedGas = 0;
 		this.queuedMinerals = 0;
 		this.building = building;
 	}
 
-	public void drawConstructionSite(MapDrawer mapDrawer) {
+	void drawConstructionSite(MapDrawer mapDrawer) {
 		
 		if (this.constructionSite != null) {
 			mapDrawer.drawBoxMap(this.constructionSite.getX() * 32, this.constructionSite.getY() * 32, 
@@ -339,7 +364,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		}
 	}
 
-	public boolean isFinished() {
+	boolean isFinished() {
 		return this.finished;
 	}
 	

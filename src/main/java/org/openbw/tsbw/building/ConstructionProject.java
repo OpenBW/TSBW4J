@@ -140,18 +140,13 @@ class ConstructionProject extends BasicActor<Message, Void> {
 	
 	private void findConstructionSite() throws InterruptedException, SuspendExecution { 
 		
-		do {
+		if (this.constructionSite == null) {
 			
-			this.lock.lock();
-			try {
-				this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects);
-			} finally {
-				this.lock.unlock();
-			}
-			if (this.constructionSite == null) {
-				receive();
-			}
-		} while (this.constructionSite == null);
+			this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects);
+		} else {
+			
+			this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects, this.constructionSite);
+		}
 	}
 
 	/**

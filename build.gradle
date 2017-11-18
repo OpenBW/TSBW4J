@@ -38,6 +38,20 @@ sourceSets {
 	}
 }
 
+compileJava.dependsOn processResources
+compileJava {
+    doLast {
+        ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: configurations.compile.asPath)
+        ant.instrumentation(verbose:'true', check:'true', debug:'true') {
+            fileset(dir: sourceSets.main.output.classesDir)
+        }
+        sourceSets.all {
+		    println name
+		}
+        println 'AOT instrumentation: DONE'
+    }
+}
+
 jar {
 	manifest {
 		attributes 'Main-Class': mainClassName
@@ -57,18 +71,3 @@ dependencies {
     compile group: 'co.paralleluniverse', name: 'quasar-core', version: '0.7.7', classifier: 'jdk8'
     compile group: 'co.paralleluniverse', name: 'quasar-actors', version: '0.7.7'
 }
-
-compileJava.dependsOn processResources
-compileJava {
-    doLast {
-        ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: configurations.compile.asPath)
-        ant.instrumentation(verbose:'true', check:'true', debug:'true') {
-            fileset(dir: sourceSets.main.output.classesDir)
-        }
-        sourceSets.all {
-		    println name
-		}
-        println 'AOT instrumentation: DONE'
-    }
-}
-

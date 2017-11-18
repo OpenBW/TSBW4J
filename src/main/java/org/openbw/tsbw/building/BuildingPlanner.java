@@ -91,29 +91,29 @@ public class BuildingPlanner {
 		this.myInventory.getUnderConstruction().addListener(constructionListener);
 	}
 
-	public int queue(ConstructionType constructionType, TilePosition constructionSite, SCV worker) {
+	public ConstructionProject queue(ConstructionType constructionType, TilePosition constructionSite, SCV worker) {
 		
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite, worker);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();
-		return projects.size();
+		return constructionProject;
 	}
 
-	public int queue(ConstructionType constructionType, TilePosition constructionSite) {
+	public ConstructionProject queue(ConstructionType constructionType, TilePosition constructionSite) {
 		
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();
-		return projects.size();
+		return constructionProject;
 	}
 
-	public int queue(ConstructionType constructionType) {
+	public ConstructionProject queue(ConstructionType constructionType) {
 		
 		logger.debug("Queueing {}...", constructionType);
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();
-		return projects.size();
+		return constructionProject;
 	}
 	
 	public int getQueuedGas() {

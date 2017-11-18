@@ -25,7 +25,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 
-class ConstructionProject extends BasicActor<Message, Void> {
+public class ConstructionProject extends BasicActor<Message, Void> {
 
 	private static final Logger logger = LogManager.getLogger();
 	
@@ -94,6 +94,11 @@ class ConstructionProject extends BasicActor<Message, Void> {
 		this.finished = false;
 		this.queuedGas = this.constructionType.getGasPrice();
 		this.queuedMinerals = this.constructionType.getMineralPrice();
+	}
+	
+	public void updateConstructionSite(TilePosition constructionSite) {
+		
+		this.constructionSite = constructionSite;
 	}
 	
 	private void findBuilder() throws InterruptedException, SuspendExecution { 

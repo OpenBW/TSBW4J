@@ -261,7 +261,12 @@ public abstract class Bot {
 			PlayerUnit playerUnit = (PlayerUnit) unit;
 			if (!this.interactionHandler.self().equals(playerUnit.getPlayer())) {
 				
-				addToInventory(unit, this.unitInventories.get(playerUnit.getPlayer()), interactionHandler.getFrameCount());
+				UnitInventory inventory = this.unitInventories.get(playerUnit.getPlayer());
+				if (inventory == null) {
+					logger.error("no inventory found for player {} (unit {}).", playerUnit.getPlayer(), playerUnit);
+				} else {
+					addToInventory(unit, inventory, interactionHandler.getFrameCount());
+				}
 			}
 		}
 	}

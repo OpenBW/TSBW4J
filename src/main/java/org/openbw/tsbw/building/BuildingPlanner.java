@@ -93,6 +93,7 @@ public class BuildingPlanner {
 
 	public ConstructionProject queue(ConstructionType constructionType, TilePosition constructionSite, SCV worker) {
 		
+		logger.debug("Queueing {}...", constructionType);
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite, worker);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();
@@ -101,6 +102,7 @@ public class BuildingPlanner {
 
 	public ConstructionProject queue(ConstructionType constructionType, TilePosition constructionSite) {
 		
+		logger.debug("Queueing {}...", constructionType);
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite);
 		this.projects.add(constructionProject);
 		constructionProject.spawn();

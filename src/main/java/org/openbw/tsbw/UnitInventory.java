@@ -269,14 +269,14 @@ public class UnitInventory {
 	public void onUnitDestroy(MineralPatch patch, int frameCount) {
 		
 		logger.trace("{} got destroyed", patch);
-		this.allMineralPatches.remove(patch);
+		this.allMineralPatches.destroy(patch);
 	}
 	
 	public void onUnitDestroy(PlayerUnit unit, int frameCount) {
 		
 		logger.trace("{} got destroyed", unit);
 		for (Group<? extends PlayerUnit> group : this.groups) {
-			group.remove(unit);
+			group.destroy(unit);
 		}
 		if (unit.equals(this.main)) {
 			this.main = null; // TODO assign next command center as main if there is one

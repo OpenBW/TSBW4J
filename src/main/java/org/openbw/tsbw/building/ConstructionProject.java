@@ -96,9 +96,14 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		this.queuedMinerals = this.constructionType.getMineralPrice();
 	}
 	
-	public void updateConstructionSite(TilePosition constructionSite) {
+	public void updateConstructionSite(TilePosition newSite) {
 		
-		this.constructionSite = constructionSite;
+		// TODO this is very volatile because we don't know in what state we are in. Proper solution: implement update as a message to self
+		this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects, newSite);
+		if (this.builder != null) {
+			this.builder.move(newSite.toPosition());
+			logger.debug("moving builder {} to updated location at {}.", this.builder, this.constructionSite);
+		}
 	}
 	
 	private void findBuilder() throws InterruptedException, SuspendExecution { 
@@ -189,7 +194,6 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				logger.warn("{} died. Attempting to find new builder...", this.builder);
 				findBuilder();
 			}
-			logger.error("moving..." + this.builder.getSightRange());
 		}
 	}
 	

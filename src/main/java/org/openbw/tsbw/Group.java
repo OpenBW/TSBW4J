@@ -55,17 +55,27 @@ public class Group<T extends Unit> extends ConcurrentSkipListSet<T> {
 	}
 
 	@SuppressWarnings("unchecked")
+	public boolean destroy(Object o) {
+		
+		if (super.remove(o)) {
+			for (GroupListener<T> listener : listeners) {
+				
+				logger.trace("calling destroyed listeners for {}", o);
+				listener.onDestroy((T)o);
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
 	public boolean remove(Object o) {
 		
 		if (super.remove(o)) {
 			for (GroupListener<T> listener : listeners) {
 				
-				if (((T)o).exists() || !((T)o).isVisible()) {
-					listener.onRemove((T)o);
-				} else {
-					logger.trace("calling destroyed listeners for {}", o);
-					listener.onDestroy((T)o);
-				}
+				listener.onRemove((T)o);
 			}
 			return true;
 		} else {

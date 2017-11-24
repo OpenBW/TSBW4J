@@ -10,7 +10,6 @@ import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.unit.Building;
-import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MapAnalyzer;
@@ -25,13 +24,18 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 
+//TODO the implementation is not robust yet. handle cases:
+//- worker gets killed after assignment but before arriving at construction site
+//- worker gets killed while constructing
+//- construction site gets unavailable after worker assignment
+//- building gets destroyed while constructing
 public class ConstructionProject extends BasicActor<Message, Void> {
 
 	private static final Logger logger = LogManager.getLogger();
 	
 	private static final long serialVersionUID = 1L;
 
-	private static final int LATENCY = 3;
+	private int latency;
 
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
@@ -45,21 +49,36 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private Building building;
 	private int queuedGas;
 	private int queuedMinerals;
-	private boolean finished;
 		
 	private final ReentrantLock lock = new ReentrantLock();
 	private Action nextActionToExecute;
 	private boolean actionResult;
+	private int wakeUp;
 	
-	void unpark() {
-	
-		if (this.nextActionToExecute != null) {
-			this.actionResult = this.nextActionToExecute.execute();
-			this.nextActionToExecute = null;
+	public void onFrame(Message message) {
+		
+		if (wakeUp <= message.getFrame()) {
+			
+			try {
+				this.lock.lock();
+				
+				if (this.nextActionToExecute != null) {
+					
+					this.actionResult = this.nextActionToExecute.execute();
+					logger.trace("executed {}.", this.nextActionToExecute);
+					this.wakeUp = message.getFrame() + this.latency;
+					this.nextActionToExecute = null;
+					Strand.unpark(this.getStrand());
+				}
+				this.sendOrInterrupt(message);
+				
+			} finally {
+				
+				this.lock.unlock();
+			}
 		}
-		Strand.unpark(this.getStrand());
 	}
-	
+
 	private boolean executeAction(Action action) throws InterruptedException, SuspendExecution {
 	
 		this.nextActionToExecute = action;
@@ -87,11 +106,12 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		this.projects = projects;
 		this.constructionSite = constructionSite;
 		this.builder = builder;
+		this.latency = interactionHandler.getLatency();
 		
 		this.nextActionToExecute = null;
 		this.actionResult = false;
+		this.wakeUp = 0;
 		this.building = null;
-		this.finished = false;
 		this.queuedGas = this.constructionType.getGasPrice();
 		this.queuedMinerals = this.constructionType.getMineralPrice();
 	}
@@ -102,7 +122,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects, newSite);
 		if (this.builder != null) {
 			this.builder.move(newSite.toPosition());
-			logger.debug("moving builder {} to updated location at {}.", this.builder, this.constructionSite);
+			logger.debug("{}: moving builder {} to updated location at {}.", this.interactionHandler.getFrameCount(), this.builder, this.constructionSite);
 		}
 	}
 	
@@ -177,21 +197,17 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	
 	private void travelToConstructionSite() throws InterruptedException, SuspendExecution {
 		
-		int frame = interactionHandler.getFrameCount();
-		
-		while (this.builder.getDistance(this.constructionSite.toPosition()) > this.builder.getSightRange() - 96) {
+		while (this.builder.getDistance(this.constructionSite.toPosition()) > this.builder.getSightRange() - 64) {
 			
 			receive();
-			int currentFrame = interactionHandler.getFrameCount();
 			
-			if (this.builder.isIdle() && currentFrame > frame) {
+			if (this.builder.isIdle()) {
 				
-				logger.warn("{} stopped moving. Issuing new move order to {}...", this.builder, this.constructionSite);
+				logger.warn("{}: {} stopped moving. Issuing new move order to {}...", this.interactionHandler.getFrameCount(), this.builder, this.constructionSite);
 				this.executeAction(new MoveAction(this.builder, this.constructionSite.toPosition()));
-				frame = currentFrame + LATENCY + 2;
 			} else if (!this.builder.exists()) {
 				
-				logger.warn("{} died. Attempting to find new builder...", this.builder);
+				logger.warn("{}: {} died. Attempting to find new builder...", this.interactionHandler.getFrameCount(), this.builder);
 				findBuilder();
 			}
 		}
@@ -215,7 +231,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			
 			if (message.getMinerals() >= this.constructionType.getMineralPrice() - estimatedMining) {
 			
-				logger.debug("estimated mining during travel: {}", estimatedMining);
+				logger.debug("{}: estimated mining during travel: {}", this.interactionHandler.getFrameCount(), estimatedMining);
 				workerMovedToSite = this.executeAction(new MoveAction(this.builder, constructionSite.toPosition()));
 				logger.debug("{}: Moved {} to {} to build {}: {}", this.interactionHandler.getFrameCount(), this.builder, this.constructionSite, this.constructionType, workerMovedToSite ? "success." : "failed.");
 			}
@@ -234,47 +250,48 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		do {
 			success = this.executeAction(new BuildAction(this.builder, this.constructionSite, this.constructionType));
 			if (success) {
-				logger.debug("Command successful for {} to build {} at {}.", this.builder, this.constructionType, this.constructionSite);
+				logger.debug("{}: Command successful for {} to build {} at {}.", this.interactionHandler.getFrameCount(), this.builder, this.constructionType, this.constructionSite);
 			} else {
-				logger.warn("{} could not build {} at {}: {}", this.builder, this.constructionType, this.constructionSite, interactionHandler.getLastError());
+				logger.warn("{}: {} could not build {} at {}: {}", this.interactionHandler.getFrameCount(), this.builder, this.constructionType, this.constructionSite, interactionHandler.getLastError());
 				
 				if (!this.constructionType.canBuildHere(this.mapAnalyzer, this.builder, this.constructionSite)) {
-					logger.warn("construction site {} is not free anymore. Attempting to find new site...", this.constructionSite);
+					logger.warn("{}: construction site {} is not free anymore. Attempting to find new site...", this.interactionHandler.getFrameCount(), this.constructionSite);
 					findConstructionSite();
 				}
 				receive();
 			}
 		} while (!success);
-		
-		int frame = interactionHandler.getFrameCount();
-		Message message;
-		do {
-			message = receive();
-		} while (message.getFrame() >= frame + LATENCY);
 	}
 	
 	private void waitForCompletion() throws InterruptedException, SuspendExecution {
 		
-		while (this.building == null || !this.building.isCompleted() || !(this.builder.isIdle() || this.building instanceof Refinery)) {
+		boolean completed = false;
+		this.wakeUp = interactionHandler.getFrameCount() + latency;
+		while (interactionHandler.getFrameCount() < this.wakeUp) {
+			
+			receive();
+		}
+		
+		while (!completed) {
 			
 			/* problem management */
 			if (!this.builder.exists()) {
 				
-				logger.warn("warning: {} should be constructing {} but is dead. Attempting to find new builder...", this.builder, this.constructionType);
+				logger.warn("{}: warning: {} should be constructing {} but is dead. Attempting to find new builder...", this.interactionHandler.getFrameCount(), this.builder, this.constructionType);
 				findBuilder();
 			} else if (this.builder.isStuck()) {
 				
-				logger.warn("warning: {} should be constructing {} but is stuck.", this.builder, this.constructionType);
-				this.executeAction(new MoveAction(this.builder, constructionSite.toPosition()));
+				logger.warn("{}: warning: {} should be constructing {} but is stuck.", this.interactionHandler.getFrameCount(), this.builder, this.constructionType);
+				//this.executeAction(new MoveAction(this.builder, constructionSite.toPosition()));
 				// TODO check if still stuck after a couple of frames. if yes, get new builder and then release old one.
 			} else if (this.builder.isIdle()) {
 				
-				logger.warn("warning: {} should be constructing {} but is idle. Attempting to restart construction...", this.builder, this.constructionType);
+				logger.warn("{}: warning: {} should be constructing {} but is idle. Attempting to restart construction...", this.interactionHandler.getFrameCount(), this.builder, this.constructionType);
 				startConstruction();
 			} else if (!this.builder.isConstructing() && !this.builder.isMoving()) {
 				
-				logger.warn("warning: {} should be constructing {} but is not. Attempting to restart...", this.builder, this.constructionType);
-				startConstruction();
+				logger.warn("{}: warning: {} should be constructing {} but is not. Attempting to restart...", this.interactionHandler.getFrameCount(), this.builder, this.constructionType);
+				//startConstruction();
 			}
 			// if SCV is being attacked...
 			if (this.builder.getHitPoints() < 25) {
@@ -282,12 +299,14 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				// TODO potentially: findBuilder();
 			}
 			// TODO if construction is being attacked...
-			receive();
+			
+			Message message = receive();
+			completed = message.isBuildingCompleted();
 		}
 	}
 	
 	@Override
-	protected Void doRun() throws InterruptedException, SuspendExecution { 
+	protected Void doRun() throws InterruptedException, SuspendExecution {
 		
 		logger.trace("{}: spawned {}.", this.interactionHandler.getFrameCount(), this);
 		
@@ -304,14 +323,22 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		waitForCompletion();
 		logger.trace("completed.");
 		
-		this.finished = true;
-		logger.trace("finished " + this.building);
+		logger.trace("{}: finished project for {}.", this.interactionHandler.getFrameCount(), this.building);
+		releaseBuilder();
+		
 		return null;
 	}
 	
-	void releaseBuilder() {
+	private void releaseBuilder() throws InterruptedException, SuspendExecution {
+		
+		this.wakeUp = interactionHandler.getFrameCount() + latency;
+		while (interactionHandler.getFrameCount() < this.wakeUp) {
+			
+			receive();
+		}
 		
 		this.myInventory.getAvailableWorkers().add(this.builder);
+		logger.debug("{}: builder {} released.", this.interactionHandler.getFrameCount(), this.builder);
 	}
 	
 	boolean collidesWithConstruction(TilePosition position) {
@@ -332,11 +359,6 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return this.constructionType.equals(constructionType);
 	}
 	
-	boolean isConstructing(Building building) {
-		
-		return building.equals(this.building);
-	}
-	
 	int getQueuedGas() {
 		
 		return this.queuedGas;
@@ -346,14 +368,23 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		
 		return this.queuedMinerals;
 	}
-
-	boolean hasBuilt(SCV buildUnit) {
+	
+	boolean isConstructing(Building building) {
 		
-		return buildUnit.equals(builder);
+		if (this.building != null) {
+			
+			return this.building.equals(building);
+		} else if (building.getBuildUnit() == null) {
+			
+			return false;
+		} else {
+			return building.getBuildUnit().equals(builder);
+		}
 	}
 	
 	void constructionStarted(Building building) {
 		
+		logger.debug("{}: Construction of {} has started.", this.interactionHandler.getFrameCount(), building);
 		this.queuedGas = 0;
 		this.queuedMinerals = 0;
 		this.building = building;
@@ -368,10 +399,6 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		}
 	}
 
-	boolean isFinished() {
-		return this.finished;
-	}
-	
 // TODO
 //private void finishAbandonedConstructions() {
 //	

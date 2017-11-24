@@ -23,4 +23,9 @@ public class BuildAction implements Action {
 		return constructionType.build(this.scv, this.constructionSite);
 	}
 
+	@Override
+	public String toString() {
+		
+		return "build action for " + constructionType + " at " + constructionSite;
+	}
 }

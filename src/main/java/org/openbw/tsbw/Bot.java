@@ -100,6 +100,7 @@ public abstract class Bot {
 		this.gameStarted = false;
 		
 		mapAnalyzer.analyze();
+		mapAnalyzer.sortChokepoints(this.interactionHandler.self().getStartLocation());
 		
 		logger.info("playing on {} (hash: {})", this.mapAnalyzer.getBWMap().mapFileName(), this.mapAnalyzer.getBWMap().mapHash());
 		
@@ -129,10 +130,6 @@ public abstract class Bot {
 		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1), this.unitInventories.get(player2));
 		this.gameStrategy.initialize();
 		
-		this.interactionHandler.enableLatCom(false);
-		logger.info("latency: {} ({}). latency compensation: {}", this.interactionHandler.getLatency(), 
-				this.interactionHandler.getLatencyFrames(), this.interactionHandler.isLatComEnabled());
-	
 		this.bw.getAllUnits().stream().filter(u -> u instanceof MineralPatch)
 				.forEach(u -> unitInventories.get(player1).register((MineralPatch)u));
 		

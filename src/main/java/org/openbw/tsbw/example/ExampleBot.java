@@ -46,6 +46,6 @@ public class ExampleBot extends Bot {
 	public void onStart() {
 
 		interactionHandler.enableUserInput();
-		interactionHandler.setLocalSpeed(10);
+		interactionHandler.setLocalSpeed(40);
 	}
 }

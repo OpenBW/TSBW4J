@@ -35,6 +35,13 @@ public class MapAnalyzer {
 		this.bw = bw;
 		this.bwMap = bw.getBWMap();
 		this.bwta = bwta;
+		
+		for (Region region : bwta.getRegions()) {
+    		System.out.println(region);
+    		for (Chokepoint choke : region.getChokepoints()) {
+    			System.out.println("   " + choke);
+    		}
+    	}
 	}
 	
 	public BWMap getBWMap() {
@@ -87,18 +94,30 @@ public class MapAnalyzer {
 		
 		chokePoints.clear();
 		Region startRegion = bwta.getRegion(startLocation);
+		System.out.println("sorting");
+		System.out.println(startRegion);
+		for (BaseLocation b : this.getStartLocations()) {
+			System.out.println(b.getTilePosition());
+		}
 		fillMap(startRegion, 0);
 	}
 	
 	private void fillMap(Region region, int value) {
 		
+		if (region == null) {
+			return;
+		}
 		for (Chokepoint chokepoint : region.getChokepoints()) {
+			
 			if (!chokePoints.containsKey(chokepoint) || chokePoints.get(chokepoint) > value) {
+				
 				chokePoints.put(chokepoint, value);
 				Pair<Region, Region> regionPair = chokepoint.getRegions();
 				if (regionPair.first.equals(region)) {
+					
 					fillMap(regionPair.second, value + 1);
 				} else {
+					
 					fillMap(regionPair.first, value + 1);
 				}
 			}

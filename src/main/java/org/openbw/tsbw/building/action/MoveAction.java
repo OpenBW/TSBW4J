@@ -18,4 +18,10 @@ public class MoveAction implements Action {
 		
 		return this.mobileUnit.move(position);
 	}
+	
+	@Override
+	public String toString() {
+		
+		return "move action for " + mobileUnit + " to " + position;
+	}
 }

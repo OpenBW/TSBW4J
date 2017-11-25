@@ -141,7 +141,7 @@ public abstract class Bot {
 	
 	public void onEnd(boolean isWinner) {
 		
-		logger.info("--- ending game - {}.", (isWinner? "WIN": "LOSS"));
+		this.buildingPlanner.stop();
 		this.gameStrategy.stop();
 	}
 	
@@ -235,7 +235,7 @@ public abstract class Bot {
 	private void addToInventory(Unit unit, UnitInventory inventory, int timeSpotted) {
 		
 	    if (inventory == null) {
-	        System.out.println("should not be null");
+	        logger.error("inventory is null. Can't add {}.", unit);
 	    }
 	    if (unit instanceof PlayerUnit) {
 	    	
@@ -296,7 +296,11 @@ public abstract class Bot {
 		logger.debug("destroyed {}", unit);
 
 		if (unit instanceof PlayerUnit) {
-			this.unitInventories.get(((PlayerUnit) unit).getPlayer()).onUnitDestroy((PlayerUnit) unit, this.interactionHandler.getFrameCount());
+			UnitInventory inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
+			if (inventory == null) {
+				System.out.println("null");
+			}
+			inventory.onUnitDestroy((PlayerUnit) unit, this.interactionHandler.getFrameCount());
 		} else if (unit instanceof MineralPatch) {
 			this.unitInventories.get(this.player1).onUnitDestroy((MineralPatch)unit, this.interactionHandler.getFrameCount());
 		}

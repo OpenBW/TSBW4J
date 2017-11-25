@@ -2,6 +2,7 @@ package org.openbw.tsbw.building;
 
 import java.util.Comparator;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,7 +34,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 
 	private static final Logger logger = LogManager.getLogger();
 	
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 2L;
 
 	private int latency;
 
@@ -54,6 +55,38 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private Action nextActionToExecute;
 	private boolean actionResult;
 	private int wakeUp;
+	
+	private boolean done;
+	
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects) {
+		
+		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, null, null);
+	}
+	
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite) {
+		
+		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, constructionSite, null);
+	}
+	
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite, SCV builder) {
+		
+		this.constructionType = constructionType;
+		this.mapAnalyzer = mapAnalyzer;
+		this.interactionHandler = interactionHandler;
+		this.myInventory = myInventory;
+		this.projects = projects;
+		this.constructionSite = constructionSite;
+		this.builder = builder;
+		this.latency = interactionHandler.getLatency();
+		
+		this.nextActionToExecute = null;
+		this.actionResult = false;
+		this.wakeUp = 0;
+		this.done = false;
+		this.building = null;
+		this.queuedGas = this.constructionType.getGasPrice();
+		this.queuedMinerals = this.constructionType.getMineralPrice();
+	}
 	
 	public void onFrame(Message message) {
 		
@@ -87,35 +120,6 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return this.actionResult;
 	}
 	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects) {
-		
-		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, null, null);
-	}
-	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite) {
-		
-		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, constructionSite, null);
-	}
-	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite, SCV builder) {
-		
-		this.constructionType = constructionType;
-		this.mapAnalyzer = mapAnalyzer;
-		this.interactionHandler = interactionHandler;
-		this.myInventory = myInventory;
-		this.projects = projects;
-		this.constructionSite = constructionSite;
-		this.builder = builder;
-		this.latency = interactionHandler.getLatency();
-		
-		this.nextActionToExecute = null;
-		this.actionResult = false;
-		this.wakeUp = 0;
-		this.building = null;
-		this.queuedGas = this.constructionType.getGasPrice();
-		this.queuedMinerals = this.constructionType.getMineralPrice();
-	}
-	
 	public void updateConstructionSite(TilePosition newSite) {
 		
 		// TODO this is very volatile because we don't know in what state we are in. Proper solution: implement update as a message to self
@@ -128,7 +132,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	
 	private void findBuilder() throws InterruptedException, SuspendExecution { 
 		
-		while(this.builder == null) {
+		while(this.builder == null && !done) {
 			
 			this.lock.lock();
 			try {
@@ -137,7 +141,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 				if (this.constructionSite == null) {
 					
 					Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
-					this.builder = myInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).get();
+					this.builder = myInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).orElse(null);
 					
 				/* construction site defined: take closest worker */
 				} else {
@@ -168,7 +172,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		}
 	}
 	
-	private void findConstructionSite() throws InterruptedException, SuspendExecution { 
+	private void findConstructionSite() { 
 		
 		if (this.constructionSite == null) {
 			
@@ -197,7 +201,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	
 	private void travelToConstructionSite() throws InterruptedException, SuspendExecution {
 		
-		while (this.builder.getDistance(this.constructionSite.toPosition()) > this.builder.getSightRange() - 64) {
+		while (!done && this.builder.getDistance(this.constructionSite.toPosition()) > this.builder.getSightRange() - 64) {
 			
 			receive();
 			
@@ -217,62 +221,75 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		
 		boolean workerMovedToSite = false;
 		Message message;
-		do {
-			message = receive();
+		int minerals = 0;
+		int gas = 0;
+		
+		while (!workerMovedToSite && !done) {
 			
+			message = receive();
+			minerals = message.getMinerals();
+			gas = message.getGas();
 			int estimatedMining = 0;
 			
 			// for performance reasons: estimated mining only needs to be calculated if we don't have enough minerals anyways
-			if (message.getMinerals() < this.constructionType.getMineralPrice()) {
+			if (minerals < this.constructionType.getMineralPrice()) {
 				estimatedMining = estimateMineralsMinedDuringTravel(this.myInventory.getMineralWorkers().size() - 1);
 			}
 			
 			// TODO estimate gas mining as well and adjust moveout accordingly
 			
-			if (message.getMinerals() >= this.constructionType.getMineralPrice() - estimatedMining) {
+			if (minerals >= this.constructionType.getMineralPrice() - estimatedMining) {
 			
 				logger.debug("{}: estimated mining during travel: {}", this.interactionHandler.getFrameCount(), estimatedMining);
 				workerMovedToSite = this.executeAction(new MoveAction(this.builder, constructionSite.toPosition()));
 				logger.debug("{}: Moved {} to {} to build {}: {}", this.interactionHandler.getFrameCount(), this.builder, this.constructionSite, this.constructionType, workerMovedToSite ? "success." : "failed.");
 			}
 			
-		} while (!workerMovedToSite);
+		} ;
 		
-		while (message.getMinerals() < this.constructionType.getMineralPrice() || message.getGas() < this.constructionType.getGasPrice()) {
+		
+		while (!done && (minerals < this.constructionType.getMineralPrice() || gas < this.constructionType.getGasPrice())) {
 			
 			message = receive();
+			minerals = message.getMinerals();
+			gas = message.getGas();
+			
 		}
 	}
 	
 	private void startConstruction() throws InterruptedException, SuspendExecution { 
 		
 		boolean success = false;
-		do {
+		while (!success && !done) {
+			
 			success = this.executeAction(new BuildAction(this.builder, this.constructionSite, this.constructionType));
 			if (success) {
+				
 				logger.debug("{}: Command successful for {} to build {} at {}.", this.interactionHandler.getFrameCount(), this.builder, this.constructionType, this.constructionSite);
 			} else {
+				
 				logger.warn("{}: {} could not build {} at {}: {}", this.interactionHandler.getFrameCount(), this.builder, this.constructionType, this.constructionSite, interactionHandler.getLastError());
 				
 				if (!this.constructionType.canBuildHere(this.mapAnalyzer, this.builder, this.constructionSite)) {
+					
 					logger.warn("{}: construction site {} is not free anymore. Attempting to find new site...", this.interactionHandler.getFrameCount(), this.constructionSite);
 					findConstructionSite();
 				}
 				receive();
 			}
-		} while (!success);
+		};
 	}
 	
 	private void waitForCompletion() throws InterruptedException, SuspendExecution {
 		
 		boolean completed = false;
 		this.wakeUp = interactionHandler.getFrameCount() + latency;
-		while (interactionHandler.getFrameCount() < this.wakeUp) {
+		while (!done && interactionHandler.getFrameCount() < this.wakeUp) {
 			
 			receive();
 		}
 		
-		while (!completed) {
+		while (!done && !completed) {
 			
 			/* problem management */
 			if (!this.builder.exists()) {
@@ -332,7 +349,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private void releaseBuilder() throws InterruptedException, SuspendExecution {
 		
 		this.wakeUp = interactionHandler.getFrameCount() + latency;
-		while (interactionHandler.getFrameCount() < this.wakeUp) {
+		while (!done && interactionHandler.getFrameCount() < this.wakeUp) {
 			
 			receive();
 		}
@@ -397,6 +414,17 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 					this.constructionSite.getX() * 32 + this.constructionType.tileWidth() * 32, 
 					this.constructionSite.getY() * 32 + this.constructionType.tileHeight() * 32, Color.WHITE);
 		}
+	}
+	
+	void stop() throws ExecutionException, InterruptedException {
+		
+		logger.debug("shutting down {}...", this);
+		this.done = true;
+		this.sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
+		this.sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
+		Strand.unpark(this.getStrand());
+		this.join();
+		logger.debug("done.");
 	}
 
 // TODO

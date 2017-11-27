@@ -115,8 +115,9 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private boolean executeAction(Action action) throws InterruptedException, SuspendExecution {
 	
 		this.nextActionToExecute = action;
-		Strand.park(this);
-		
+		if (!done) {
+			Strand.park(this);
+		}
 		return this.actionResult;
 	}
 	
@@ -266,7 +267,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 			if (success) {
 				
 				logger.debug("{}: Command successful for {} to build {} at {}.", this.interactionHandler.getFrameCount(), this.builder, this.constructionType, this.constructionSite);
-			} else {
+			} else if (!done) {
 				
 				logger.warn("{}: {} could not build {} at {}: {}", this.interactionHandler.getFrameCount(), this.builder, this.constructionType, this.constructionSite, interactionHandler.getLastError());
 				
@@ -420,9 +421,11 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		
 		logger.debug("shutting down {}...", this);
 		this.done = true;
-		this.sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
+		
+		Strand.unpark(this.getStrand());
 		this.sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
 		Strand.unpark(this.getStrand());
+		
 		this.join();
 		logger.debug("done.");
 	}

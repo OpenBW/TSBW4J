@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openbw.bwapi4j.Bullet;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.type.WeaponType;
 import org.openbw.bwapi4j.unit.Barracks;
@@ -42,6 +43,7 @@ public class UnitInventory {
 	private Group<MineralPatch> allMineralPatches;
 	private Group<VespeneGeyser> allVespeneGeysers;
 	private Collection<PlayerUnit> allUnits;
+	private Collection<Bullet> bullets;
 	
 	private List<Group<? extends PlayerUnit>> groups;
 	
@@ -64,9 +66,10 @@ public class UnitInventory {
 		this.groups = new ArrayList<Group<? extends PlayerUnit>>();
 	}
 	
-	public void initialize() {
+	public void initialize(Collection<Bullet> bullets) {
 		
 	    this.allUnits.clear();
+	    this.bullets = bullets;
 		this.groups.clear();
 		
 		this.destroyedUnits.clear();
@@ -138,6 +141,11 @@ public class UnitInventory {
 	
 	public Squad<SCV> getVespeneWorkers() {
 		return this.vespeneWorkers;
+	}
+	
+	public Collection<Bullet> getBullets() {
+
+		return this.bullets;
 	}
 	
 	public List<MobileUnit> getAllMobileUnits() {

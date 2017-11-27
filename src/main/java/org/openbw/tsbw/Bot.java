@@ -105,8 +105,9 @@ public abstract class Bot {
 		logger.info("playing on {} (hash: {})", this.mapAnalyzer.getBWMap().mapFileName(), this.mapAnalyzer.getBWMap().mapHash());
 		
 		for (Player player : bw.getAllPlayers()) {
+			
 			UnitInventory unitInventory = new UnitInventory();
-			unitInventory.initialize();
+			unitInventory.initialize(bw.getBullets());
 			this.unitInventories.put(player, unitInventory);
 		}
 		

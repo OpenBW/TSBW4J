@@ -12,6 +12,7 @@ import org.openbw.bwapi4j.InteractionHandler;
 import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.Factory;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.MapAnalyzer;
@@ -35,7 +36,7 @@ public class BuildingPlanner {
 	
 	private boolean done;
 	
-	private Queue<ConstructionProject> projects;
+	private Queue<Project> projects;
 	
 	private GroupListener<Building> constructionListener = new GroupListener<Building>() {
 		
@@ -75,8 +76,8 @@ public class BuildingPlanner {
 				logger.debug("building {} completed.", building);
 			}
 			
-			projects.stream().filter(p -> p.isConstructing(building)).findFirst().ifPresent(p -> {
-				p.sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
+			projects.stream().filter(p -> p instanceof ConstructionProject && p.isConstructing(building)).findFirst().ifPresent(p -> {
+				((ConstructionProject)p).sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
 			});
 		}
 
@@ -130,7 +131,7 @@ public class BuildingPlanner {
 		}
 		return constructionProject;
 	}
-
+	
 	public ConstructionProject queue(ConstructionType constructionType) {
 		
 		logger.debug("Queueing {}...", constructionType);
@@ -142,10 +143,17 @@ public class BuildingPlanner {
 		return constructionProject;
 	}
 	
+	public void queueMachineShop(Factory factory) {
+		
+		logger.debug("Queueing machine shop for {}...", factory);
+		MachineShopProject project = new MachineShopProject(factory, this.interactionHandler);
+		this.projects.add(project);
+	}
+	
 	public int getQueuedGas() {
 		
 		int gas = 0;
-		for (ConstructionProject project : this.projects) {
+		for (Project project : this.projects) {
 				
 				gas += project.getQueuedGas();
 		}
@@ -155,7 +163,7 @@ public class BuildingPlanner {
 	public int getQueuedMinerals() {
 		
 		int minerals = 0;
-		for (ConstructionProject project : this.projects) {
+		for (Project project : this.projects) {
 				
 			minerals += project.getQueuedMinerals();
 		}
@@ -165,7 +173,7 @@ public class BuildingPlanner {
 	public int getCount(ConstructionType constructionType) {
 
 		int counter = 0;
-		for (ConstructionProject project : this.projects) {
+		for (Project project : this.projects) {
 			if (project.isOfType(constructionType)) {
 				counter++;
 			}
@@ -175,7 +183,7 @@ public class BuildingPlanner {
 	
 	public void drawConstructionSites(MapDrawer mapDrawer) {
 		
-		for (ConstructionProject project : this.projects) {
+		for (Project project : this.projects) {
 					
 			project.drawConstructionSite(mapDrawer);
 		}
@@ -183,9 +191,9 @@ public class BuildingPlanner {
 	
 	public void run(int currentMinerals, int currentGas, int frameCount) {
 		
-		List<ConstructionProject> completed = new ArrayList<>();
+		List<Project> completed = new ArrayList<>();
 		
-		for (ConstructionProject project : this.projects) {
+		for (Project project : this.projects) {
 			
 			project.onFrame(new Message(currentMinerals, currentGas, frameCount));
 			currentGas -= project.getQueuedGas();
@@ -202,15 +210,15 @@ public class BuildingPlanner {
 		
 		logger.debug("shutting down {} construction projects...", this.projects.size());
 		this.done = true;
-		for (ConstructionProject project : this.projects) {
-			
+		
+		this.projects.stream().filter(p -> p instanceof ConstructionProject).forEach(p -> {
 			try {
-				project.stop();
+				((ConstructionProject)p).stop();
 			} catch (ExecutionException | InterruptedException e) {
-				logger.error("Error stopping project {}.", project, e);
+				logger.error("Error stopping project {}.", p, e);
 				e.printStackTrace();
 			}
-		}
+		});
 		logger.debug("done.");
 	}
 }

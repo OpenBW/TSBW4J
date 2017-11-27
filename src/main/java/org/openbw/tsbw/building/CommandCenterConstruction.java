@@ -20,7 +20,7 @@ public class CommandCenterConstruction extends ConstructionProvider {
 	}
 
 	@Override
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects) {
+	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects) {
 		
 		TilePosition buildTile = null;
 		

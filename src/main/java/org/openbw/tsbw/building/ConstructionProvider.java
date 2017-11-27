@@ -21,14 +21,14 @@ public class ConstructionProvider {
 		return this.unitType;
 	}
 
-	public TilePosition getBuildTile(UnitInventory myInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects) {
+	public TilePosition getBuildTile(UnitInventory myInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects) {
 		
 		TilePosition position = myInventory.getMain().getInitialTilePosition();
 		
 		return getBuildTile(myInventory, mapAnalyzer, builder, projects, position);
 	}
 	
-	public TilePosition getBuildTile(UnitInventory myInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+	public TilePosition getBuildTile(UnitInventory myInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects, TilePosition aroundHere) {
 		
 		TilePosition nextPosition = aroundHere;
 		
@@ -47,9 +47,9 @@ public class ConstructionProvider {
 		return nextPosition;
 	}
 	
-	protected boolean collidesWithConstruction(TilePosition position, Queue<ConstructionProject> projects) {
+	protected boolean collidesWithConstruction(TilePosition position, Queue<Project> projects) {
 		
-		for (ConstructionProject project : projects) {
+		for (Project project : projects) {
 			
 			if (project.collidesWithConstruction(position)) {
 				return true;

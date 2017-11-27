@@ -71,11 +71,11 @@ public enum ConstructionType {
 		this.constructionProvider = constructionProvider;
 	}
 	
-	public TilePosition getBuildTile(SCV builder, UnitInventory myInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects) {
+	public TilePosition getBuildTile(SCV builder, UnitInventory myInventory, MapAnalyzer mapAnalyzer, Queue<Project> projects) {
 		return constructionProvider.getBuildTile(myInventory, mapAnalyzer, builder, projects);
 	}
 	
-	public TilePosition getBuildTile(SCV builder, UnitInventory myInventory, MapAnalyzer mapAnalyzer, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+	public TilePosition getBuildTile(SCV builder, UnitInventory myInventory, MapAnalyzer mapAnalyzer, Queue<Project> projects, TilePosition aroundHere) {
 		return this.constructionProvider.getBuildTile(myInventory, mapAnalyzer, builder, projects, aroundHere);
 	}
 	

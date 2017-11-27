@@ -18,7 +18,7 @@ public class RefineryConstruction extends ConstructionProvider {
 	}
 
 	@Override
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects, TilePosition aroundHere) {
 		
 		Position around = aroundHere.toPosition();
 		

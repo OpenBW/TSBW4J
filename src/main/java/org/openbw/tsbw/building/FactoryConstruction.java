@@ -8,16 +8,35 @@ import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 
+import bwta.Region;
+
 public class FactoryConstruction extends ConstructionProvider {
 
 	public FactoryConstruction() {
+		
 		super(UnitType.Terran_Factory);
 	}
 
 	@Override
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects, TilePosition aroundHere) {
+	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects) {
 	
+		Region region;
+		if (unitInventory.getMain() == null) {
+			region = mapAnalyzer.getRegion(builder.getPosition());
+		} else {
+			region = mapAnalyzer.getRegion(unitInventory.getMain().getPosition());
+		}
+		TilePosition choke = region.getChokepoints().iterator().next().getCenter().toTilePosition();
+		TilePosition center = region.getCenter().toTilePosition();
 		
+		TilePosition position = new TilePosition((center.getX() + choke.getX()) / 2, (center.getY() + choke.getY()) / 2);
+		
+		return getBuildTile(unitInventory, mapAnalyzer, builder, projects, position);
+	}
+	
+	@Override
+	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects, TilePosition aroundHere) {
+	
 		TilePosition nextPosition = aroundHere;
 		TilePosition extensionPosition = new TilePosition(nextPosition.getX() + 4, nextPosition.getY() + 1);
 		

@@ -30,7 +30,7 @@ import co.paralleluniverse.strands.concurrent.ReentrantLock;
 //- worker gets killed while constructing
 //- construction site gets unavailable after worker assignment
 //- building gets destroyed while constructing
-public class ConstructionProject extends BasicActor<Message, Void> {
+public class ConstructionProject extends BasicActor<Message, Void> implements Project {
 
 	private static final Logger logger = LogManager.getLogger();
 	
@@ -41,7 +41,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
 	private UnitInventory myInventory;
-	private Queue<ConstructionProject> projects;
+	private Queue<Project> projects;
 	
 	private ConstructionType constructionType;
 	private SCV builder;
@@ -58,17 +58,17 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 	
 	private boolean done;
 	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects) {
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects) {
 		
 		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, null, null);
 	}
 	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite) {
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects, TilePosition constructionSite) {
 		
 		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, constructionSite, null);
 	}
 	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<ConstructionProject> projects, TilePosition constructionSite, SCV builder) {
+	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects, TilePosition constructionSite, SCV builder) {
 		
 		this.constructionType = constructionType;
 		this.mapAnalyzer = mapAnalyzer;
@@ -359,7 +359,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		logger.debug("{}: builder {} released.", this.interactionHandler.getFrameCount(), this.builder);
 	}
 	
-	boolean collidesWithConstruction(TilePosition position) {
+	public boolean collidesWithConstruction(TilePosition position) {
 		
 		if (this.constructionSite != null) {
 			
@@ -372,22 +372,22 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		return false;
 	}
 
-	boolean isOfType(ConstructionType constructionType) {
+	public boolean isOfType(ConstructionType constructionType) {
 		
 		return this.constructionType.equals(constructionType);
 	}
 	
-	int getQueuedGas() {
+	public int getQueuedGas() {
 		
 		return this.queuedGas;
 	}
 	
-	int getQueuedMinerals() {
+	public int getQueuedMinerals() {
 		
 		return this.queuedMinerals;
 	}
 	
-	boolean isConstructing(Building building) {
+	public boolean isConstructing(Building building) {
 		
 		if (this.building != null) {
 			
@@ -400,7 +400,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		}
 	}
 	
-	void constructionStarted(Building building) {
+	public void constructionStarted(Building building) {
 		
 		logger.debug("{}: Construction of {} has started.", this.interactionHandler.getFrameCount(), building);
 		this.queuedGas = 0;
@@ -408,7 +408,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		this.building = building;
 	}
 
-	void drawConstructionSite(MapDrawer mapDrawer) {
+	public void drawConstructionSite(MapDrawer mapDrawer) {
 		
 		if (this.constructionSite != null) {
 			mapDrawer.drawBoxMap(this.constructionSite.getX() * 32, this.constructionSite.getY() * 32, 
@@ -417,7 +417,7 @@ public class ConstructionProject extends BasicActor<Message, Void> {
 		}
 	}
 	
-	void stop() throws ExecutionException, InterruptedException {
+	public void stop() throws ExecutionException, InterruptedException {
 		
 		logger.debug("shutting down {}...", this);
 		this.done = true;

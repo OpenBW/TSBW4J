@@ -17,7 +17,7 @@ public class SupplyDepotConstruction extends ConstructionProvider {
 	}
 
 	@Override
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects) {
+	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects) {
 	
 		Region region;
 		if (unitInventory.getMain() == null) {

@@ -13,11 +13,12 @@ import bwta.Region;
 public class BarracksConstruction extends ConstructionProvider {
 
 	public BarracksConstruction() {
+		
 		super(UnitType.Terran_Barracks);
 	}
 
 	@Override
-	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<ConstructionProject> projects) {
+	public TilePosition getBuildTile(UnitInventory unitInventory, MapAnalyzer mapAnalyzer, SCV builder, Queue<Project> projects) {
 	
 		Region region;
 		if (unitInventory.getMain() == null) {

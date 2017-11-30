@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi4j.BW;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.type.WeaponType;
@@ -15,12 +14,8 @@ import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
-import org.openbw.tsbw.MapAnalyzer;
-import org.openbw.tsbw.UnitInventory;
-import org.openbw.tsbw.building.BuildingPlanner;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
-import org.openbw.tsbw.strategy.ScoutingStrategy;
 
 import bwta.Chokepoint;
 import bwta.Polygon;
@@ -32,14 +27,12 @@ import bwta.Region;
  * 
  * You could write code to read a build order from a file and generate the corresponding actions to be executed.
  */
-class BuildOrderStrategy extends AbstractGameStrategy {
+public class BuildOrderStrategy extends AbstractGameStrategy {
 
 	private static final Logger logger = LogManager.getLogger();
 	
 	private List<BoAction> buildOrder;
 	private int boPointer;
-	
-	private UnitInventory myInventory;
 	
 	private GroupListener<SCV> workerListener = new GroupListener<SCV>() {
 
@@ -97,23 +90,16 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 		}
 	};
 	
-	/* default */ BuildOrderStrategy(BW bw, MapAnalyzer mapAnalyzer, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
+	public BuildOrderStrategy() {
 	
-		super(bw, mapAnalyzer, scoutingStrategy, buildingPlanner);
-		
-		this.myInventory = myInventory;
-		this.buildOrder = new ArrayList<BoAction>();
 	}
 		
-	@Override
-	public void initialize() {
-		
-		this.boPointer = 0;
-		this.buildOrder.clear();
-	}
-	
 	@Override
 	public void start(int startMinerals, int startGas) {
+		
+		this.buildOrder = new ArrayList<BoAction>();
+		this.boPointer = 0;
+		this.buildOrder.clear();
 		
 		this.myInventory.getAllWorkers().addListener(workerListener);
 		this.myInventory.getBuildings().addListener(buildingsListener);
@@ -133,20 +119,20 @@ class BuildOrderStrategy extends AbstractGameStrategy {
 		this.buildOrder.add(new TrainMarineAction(myInventory));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainMarineAction(myInventory));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Supply_Depot));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Supply_Depot));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Factory));
-//		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
-//		this.buildOrder.add(new TrainMarineAction(myInventory));
-//		this.buildOrder.add(new TrainMarineAction(myInventory));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Academy));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Engineering_Bay));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Bunker));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Missile_Turret));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Armory));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Starport));
-//		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Science_Facility));
+		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
+		this.buildOrder.add(new TrainMarineAction(myInventory));
+		this.buildOrder.add(new TrainMarineAction(myInventory));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Academy));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Engineering_Bay));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Bunker));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Missile_Turret));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Armory));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Starport));
+		this.buildOrder.add(new ConstructionAction(buildingPlanner, ConstructionType.Terran_Science_Facility));
 	}
 	
 	@Override

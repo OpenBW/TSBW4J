@@ -75,23 +75,20 @@ public abstract class Bot {
 		bw.startGame();
 	}
 	
-	public Bot(MiningFactory miningFactory, ScoutingFactory scoutingFactory, StrategyFactory strategyFactory) {
+	public Bot(MiningFactory miningFactory, ScoutingFactory scoutingFactory) {
 		
 		this.miningFactory = miningFactory;
 		this.scoutingFactory = scoutingFactory;
-		this.strategyFactory = strategyFactory;
 		
 		this.eventListener = new BotEventListener(this);
-		
 		this.unitInventories = new HashMap<Player, UnitInventory>();
 	}
 	
 	public abstract void onStart();
 	
-	/* default */ final void internalOnStart() {
+	final void internalOnStart() {
 		
 		logger.info("--- game started at {}.", new Date());
-		logger.debug("CWD: {}", System.getProperty("user.dir"));
 		
 		this.interactionHandler = bw.getInteractionHandler();
         this.mapDrawer = bw.getMapDrawer();
@@ -126,10 +123,9 @@ public abstract class Bot {
 		
 		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.miningStrategy = this.miningFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
-		this.gameStrategy = strategyFactory.getStrategy(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
+		this.strategyFactory = new StrategyFactory(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
 		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1), this.unitInventories.get(player2));
-		this.gameStrategy.initialize();
 		
 		this.bw.getAllUnits().stream().filter(u -> u instanceof MineralPatch)
 				.forEach(u -> unitInventories.get(player1).register((MineralPatch)u));
@@ -142,8 +138,13 @@ public abstract class Bot {
 	
 	public void onEnd(boolean isWinner) {
 		
+	}
+	
+	final void internalOnEnd(boolean isWinner) {
+		
 		this.buildingPlanner.stop();
 		this.gameStrategy.stop();
+		onEnd(isWinner);
 	}
 	
 	public void onFrame() {
@@ -158,13 +159,14 @@ public abstract class Bot {
 		
 		miningStrategy.run(frameCount);
 		
+		if (scoutingEnabled) {
+			scoutingStrategy.run(frameCount);
+		}
+		
 		/*
 		 * Do every 5 frames (just for performance reasons)
 		 */
 		if (frameCount % 5 == 0) {
-			if (scoutingEnabled) {
-				scoutingStrategy.run(frameCount);
-			}
 			
 			// some simple interaction: enable global map drawing or change logging output
 			if (interactionHandler.isKeyPressed(Key.K_CONTROL) && interactionHandler.isKeyPressed(Key.K_T)) {
@@ -252,7 +254,6 @@ public abstract class Bot {
 	
 	/* default */ final void onUnitDiscover(Unit unit) {
 		
-		// TODO handle (enemy) units that are discovered
 		logger.trace("onDiscover: discovered {}.", unit);
 		if (unit instanceof PlayerUnit) {
 			

@@ -6,6 +6,7 @@ import org.openbw.bwapi4j.InteractionHandler;
 import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.Player;
 import org.openbw.tsbw.MapAnalyzer;
+import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.building.BuildingPlanner;
 
 public abstract class AbstractGameStrategy {
@@ -18,8 +19,14 @@ public abstract class AbstractGameStrategy {
 	protected BuildingPlanner buildingPlanner;
 	protected DamageEvaluator damageEvaluator;
 	protected InteractionHandler interactionHandler;
+	protected UnitInventory myInventory;
+	protected UnitInventory enemyInventory;
 	
-	public AbstractGameStrategy(BW bw, MapAnalyzer mapAnalyzer, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner) {
+	/**
+	 * Is called before a new game is about to start.
+	 */
+	public void initialize(BW bw, MapAnalyzer mapAnalyzer, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory player1Inventory,
+			UnitInventory player2Inventory) {
 		
 		this.mapDrawer = bw.getMapDrawer();
 		this.damageEvaluator = bw.getDamageEvaluator();
@@ -29,13 +36,9 @@ public abstract class AbstractGameStrategy {
 		this.mapAnalyzer = mapAnalyzer;
 		this.scoutingStrategy = scoutingStrategy;
 		this.buildingPlanner = buildingPlanner;
-		
+		this.myInventory = player1Inventory;
+		this.enemyInventory = player2Inventory;
 	}
-
-	/**
-	 * Is called before a new game is about to start.
-	 */
-	public abstract void initialize();
 	
 	/**
 	 * Is called after a new game started (i.e., all initial units have been discovered and completed.
@@ -57,6 +60,7 @@ public abstract class AbstractGameStrategy {
 	 * Is called after a game has ended. Can optionally be used to do cleanup before starting a new game.
 	 */
 	public void stop() {
-		// do nothing
+		
+		// default: do nothing
 	}
 }

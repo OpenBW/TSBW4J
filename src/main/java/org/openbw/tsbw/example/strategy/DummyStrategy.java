@@ -2,7 +2,6 @@ package org.openbw.tsbw.example.strategy;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi4j.BW;
 import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.Barracks;
 import org.openbw.bwapi4j.unit.Building;
@@ -11,12 +10,8 @@ import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
-import org.openbw.tsbw.MapAnalyzer;
-import org.openbw.tsbw.UnitInventory;
-import org.openbw.tsbw.building.BuildingPlanner;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
-import org.openbw.tsbw.strategy.ScoutingStrategy;
 
 /**
  * This is an extremely basic strategy to get you started.
@@ -35,9 +30,6 @@ import org.openbw.tsbw.strategy.ScoutingStrategy;
 public class DummyStrategy extends AbstractGameStrategy {
 
 	private static final Logger logger = LogManager.getLogger();
-	
-	protected UnitInventory myInventory;
-	protected UnitInventory enemyInventory;
 	
 	/**
 	 * Listens to events affecting my workers.
@@ -173,20 +165,10 @@ public class DummyStrategy extends AbstractGameStrategy {
 		}
 	};
 	
-	public DummyStrategy(BW bw, MapAnalyzer mapAnalyzer, ScoutingStrategy scoutingStrategy, BuildingPlanner buildingPlanner, UnitInventory myInventory, UnitInventory enemyInventory) {
+	public DummyStrategy() {
 	
-		super(bw, mapAnalyzer, scoutingStrategy, buildingPlanner);
-		
-		this.myInventory = myInventory;
-		this.enemyInventory = enemyInventory;
 	}
 	
-	@Override
-	public void initialize() {
-		
-		// do any initial one-time setup here
-	}
-
 	@Override
 	public void start(int startMinerals, int startGas) {
 		

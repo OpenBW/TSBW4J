@@ -21,7 +21,7 @@ import org.openbw.bwapi4j.unit.Unit;
 	@Override
 	public void onEnd(boolean win) {
 		try {
-			bot.onEnd(win);
+			bot.internalOnEnd(win);
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw e;

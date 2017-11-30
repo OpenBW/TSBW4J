@@ -3,16 +3,15 @@ package org.openbw.tsbw.example;
 import org.openbw.tsbw.Bot;
 import org.openbw.tsbw.example.mining.DefaultMiningFactory;
 import org.openbw.tsbw.example.scouting.DefaultScoutingFactory;
-import org.openbw.tsbw.example.strategy.DefaultStrategyFactory;
-import org.openbw.tsbw.example.strategy.DefaultStrategyFactory.Type;
+import org.openbw.tsbw.example.strategy.BuildOrderStrategy;
+import org.openbw.tsbw.example.strategy.DummyStrategy;
 import org.openbw.tsbw.strategy.MiningFactory;
 import org.openbw.tsbw.strategy.ScoutingFactory;
-import org.openbw.tsbw.strategy.StrategyFactory;
 
 public class ExampleBot extends Bot {
 
-	public ExampleBot(MiningFactory miningFactory, ScoutingFactory scoutingFactory, StrategyFactory strategyFactory) {
-		super(miningFactory, scoutingFactory, strategyFactory);
+	public ExampleBot(MiningFactory miningFactory, ScoutingFactory scoutingFactory) {
+		super(miningFactory, scoutingFactory);
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -34,9 +33,7 @@ public class ExampleBot extends Bot {
 		ScoutingFactory scoutingFactory = new DefaultScoutingFactory();
 		
 		// try changing the Type from DUMMY to BUILD_ORDER to use a different strategy
-		StrategyFactory strategyFactory = new DefaultStrategyFactory(Type.BUILD_ORDER);
-		
-		ExampleBot exampleBot = new ExampleBot(miningFactory, scoutingFactory, strategyFactory);
+		ExampleBot exampleBot = new ExampleBot(miningFactory, scoutingFactory);
 		
 		// run the bot. It will search for a game lobby to join.
 		exampleBot.run();
@@ -45,7 +42,11 @@ public class ExampleBot extends Bot {
 	@Override
 	public void onStart() {
 
-		interactionHandler.enableUserInput();
-		interactionHandler.setLocalSpeed(20);
+		this.strategyFactory.register("dummy", new DummyStrategy());
+		this.strategyFactory.register("bo", new BuildOrderStrategy());
+		this.gameStrategy = strategyFactory.getStrategy("dummy");
+		
+		this.interactionHandler.enableUserInput();
+		this.interactionHandler.setLocalSpeed(20);
 	}
 }

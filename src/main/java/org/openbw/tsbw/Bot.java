@@ -2,7 +2,9 @@ package org.openbw.tsbw;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,9 +27,8 @@ import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.building.FactoryConstruction;
 import org.openbw.tsbw.building.RefineryConstruction;
 import org.openbw.tsbw.building.SupplyDepotConstruction;
+import org.openbw.tsbw.mining.ResourceGatherer;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
-import org.openbw.tsbw.strategy.MiningFactory;
-import org.openbw.tsbw.strategy.MiningStrategy;
 import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
@@ -52,9 +53,7 @@ public abstract class Bot {
 	protected MapDrawer mapDrawer;
 	protected InteractionHandler interactionHandler;
 	protected BuildingPlanner buildingPlanner;
-	
-	protected MiningFactory miningFactory;
-	protected MiningStrategy miningStrategy;
+	protected ResourceGatherer resourceGatherer;
 	
 	protected ScoutingFactory scoutingFactory;
 	protected ScoutingStrategy scoutingStrategy;
@@ -66,6 +65,8 @@ public abstract class Bot {
 	protected boolean cleanLogging = false;
 	protected boolean gameStarted = false;
 	
+	private Set<Subscriber<FrameUpdate>> subscribers;
+	
 	public final void run() {
 		
 		logger.trace("executing run().");
@@ -75,13 +76,23 @@ public abstract class Bot {
 		bw.startGame();
 	}
 	
-	public Bot(MiningFactory miningFactory, ScoutingFactory scoutingFactory) {
+	public Bot(ScoutingFactory scoutingFactory) {
 		
-		this.miningFactory = miningFactory;
 		this.scoutingFactory = scoutingFactory;
 		
 		this.eventListener = new BotEventListener(this);
 		this.unitInventories = new HashMap<Player, UnitInventory>();
+		this.subscribers = new HashSet<>();
+	}
+	
+	public void subscribe(Subscriber<FrameUpdate> subscriber) {
+	
+		this.subscribers.add(subscriber);
+	}
+	
+	public void unsubscribe(Subscriber<FrameUpdate> subscriber) {
+		
+		this.subscribers.remove(subscriber);
 	}
 	
 	public abstract void onStart();
@@ -90,21 +101,23 @@ public abstract class Bot {
 		
 		logger.info("--- game started at {}.", new Date());
 		
+		this.subscribers.clear();
+		
 		this.interactionHandler = bw.getInteractionHandler();
         this.mapDrawer = bw.getMapDrawer();
         this.mapAnalyzer = new MapAnalyzer(bw, new BWTA());
         
 		this.gameStarted = false;
 		
-		mapAnalyzer.analyze();
-		mapAnalyzer.sortChokepoints(this.interactionHandler.self().getStartLocation());
+		this.mapAnalyzer.analyze();
+		this.mapAnalyzer.sortChokepoints(this.interactionHandler.self().getStartLocation());
 		
 		logger.info("playing on {} (hash: {})", this.mapAnalyzer.getBWMap().mapFileName(), this.mapAnalyzer.getBWMap().mapHash());
 		
 		for (Player player : bw.getAllPlayers()) {
 			
 			UnitInventory unitInventory = new UnitInventory();
-			unitInventory.initialize(bw.getBullets());
+			unitInventory.initialize(bw.getBullets(), this.mapAnalyzer);
 			this.unitInventories.put(player, unitInventory);
 		}
 		
@@ -121,17 +134,21 @@ public abstract class Bot {
 		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.mapAnalyzer, this.interactionHandler);
 		this.buildingPlanner.initialize();
 		
+		UnitInventory myInventory = this.unitInventories.get(this.player1);
+		
+		this.resourceGatherer = new ResourceGatherer();
+		subscribe(this.resourceGatherer);
+		
 		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
-		this.miningStrategy = this.miningFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.strategyFactory = new StrategyFactory(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
-		this.scoutingStrategy.initialize(this.unitInventories.get(this.player1).getScouts(), this.unitInventories.get(this.player1), this.unitInventories.get(player2));
+		this.scoutingStrategy.initialize(myInventory.getScouts(), myInventory, this.unitInventories.get(player2));
 		
 		this.bw.getAllUnits().stream().filter(u -> u instanceof MineralPatch)
-				.forEach(u -> unitInventories.get(player1).register((MineralPatch)u));
+				.forEach(u -> myInventory.register((MineralPatch)u));
 		
 		this.bw.getAllUnits().stream().filter(u -> u instanceof VespeneGeyser)
-		.forEach(u -> unitInventories.get(player1).register((VespeneGeyser)u));
+		.forEach(u -> myInventory.register((VespeneGeyser)u));
 
 		this.onStart();
 	}
@@ -157,7 +174,8 @@ public abstract class Bot {
 			return;
 		}
 		
-		miningStrategy.run(frameCount);
+		FrameUpdate frameUpdate = new FrameUpdate();
+		this.subscribers.stream().forEach(s -> s.onReceive(frameUpdate));
 		
 		if (scoutingEnabled) {
 			scoutingStrategy.run(frameCount);
@@ -239,16 +257,8 @@ public abstract class Bot {
 		
 	    if (inventory == null) {
 	        logger.error("inventory is null. Can't add {}.", unit);
-	    }
-	    if (unit instanceof PlayerUnit) {
-	    	
-	        inventory.register((PlayerUnit)unit);
-	    } else if (unit instanceof MineralPatch) {
-	    	
-	        inventory.register((MineralPatch)unit);
-	    } else if (unit instanceof VespeneGeyser) {
-	    	
-	        inventory.register((VespeneGeyser)unit);
+	    } else {
+	    	inventory.register(unit);
 	    }
 	}
 	
@@ -298,13 +308,16 @@ public abstract class Bot {
 		logger.debug("destroyed {}", unit);
 
 		if (unit instanceof PlayerUnit) {
+			
 			UnitInventory inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
 			if (inventory == null) {
-				System.out.println("null");
+				
+				logger.error("Could not find a unit inventory for player {}.", ((PlayerUnit) unit).getPlayer());
 			}
-			inventory.onUnitDestroy((PlayerUnit) unit, this.interactionHandler.getFrameCount());
+			inventory.unregister((PlayerUnit) unit);
 		} else if (unit instanceof MineralPatch) {
-			this.unitInventories.get(this.player1).onUnitDestroy((MineralPatch)unit, this.interactionHandler.getFrameCount());
+			
+			this.unitInventories.get(this.player1).unregister((MineralPatch)unit);
 		}
 	}
 	
@@ -342,18 +355,20 @@ public abstract class Bot {
 		
 		UnitInventory inventory;
         if (unit instanceof PlayerUnit) {
+        	
             inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
         } else {
+        	
             inventory = this.unitInventories.get(this.player1);
         }
+        
         addToInventory(unit, inventory, interactionHandler.getFrameCount());
 		
 		// Once the initial 4 workers and the command centers have fired their triggers we truly start the game
-		if (!gameStarted && unitInventories.get(this.player1).getAllWorkers().size() == 4 && !unitInventories.get(this.player1).getCommandCenters().isEmpty()) {
+		if (!gameStarted && inventory.getWorkers().size() == 4 && !inventory.getCommandCenters().isEmpty()) {
 			
-			unitInventories.get(this.player1).getMineralWorkers().addAll(unitInventories.get(this.player1).getAllWorkers());
-			
-			miningStrategy.initialize(unitInventories.get(this.player1).getCommandCenters(), unitInventories.get(this.player1).getRefineries(), unitInventories.get(this.player1).getMineralWorkers(), unitInventories.get(this.player1).getVespeneWorkers(), unitInventories.get(this.player1).getMineralPatches());
+			this.resourceGatherer.initialize(inventory.getWorkers(), inventory.getCommandCenters(), inventory.getMineralPatches(), inventory.getVespeneGeysers());
+			inventory.getAvailableWorkers().forEach(w -> w.mine());
 			gameStrategy.start(player1.minerals(), player1.gas());
 			gameStarted = true;
 		}

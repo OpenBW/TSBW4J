@@ -12,10 +12,10 @@ import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.Factory;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.Refinery;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
+import org.openbw.tsbw.unit.SCV;
 
 import bwta.Chokepoint;
 import bwta.Polygon;
@@ -38,7 +38,8 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 
 		@Override
 		public void onAdd(SCV worker) {
-			myInventory.getMineralWorkers().add(worker);
+			
+			worker.mine();
 		}
 
 		@Override
@@ -67,10 +68,12 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 			// if our refinery finished, add an additional workers to mine gas from it
 			if (building instanceof Refinery) {
 				
-				for (int i = 0; i < 3 && myInventory.getAvailableWorkers().size() > 0; i++) {
-					SCV gasMiner = myInventory.getAvailableWorkers().first();
-					myInventory.getMineralWorkers().remove(gasMiner);
-					gasMiner.gather((Refinery) building);
+				for (int i = 0; i < 3; i++) {
+					SCV gasMiner = myInventory.getAvailableWorker();
+					if (gasMiner != null) {
+						gasMiner.setAvailable(false);
+						gasMiner.gather((Refinery) building);
+					}
 				}
 			} else if (building instanceof Factory) {
 				buildingPlanner.queueMachineShop((Factory)building);
@@ -101,7 +104,7 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 		this.boPointer = 0;
 		this.buildOrder.clear();
 		
-		this.myInventory.getAllWorkers().addListener(workerListener);
+		this.myInventory.getWorkers().addListener(workerListener);
 		this.myInventory.getBuildings().addListener(buildingsListener);
 		
 		// add actions here. this just a random build order building some depots, a barracks, and a factory.
@@ -186,7 +189,7 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 			}
 		}
 		
-		for (SCV unit : myInventory.getAllWorkers()) {
+		for (SCV unit : myInventory.getWorkers()) {
 			
 			mapDrawer.drawTextMap(unit.getPosition(), unit.getTilePosition().toString());
 			if (unit.isMoving()) {

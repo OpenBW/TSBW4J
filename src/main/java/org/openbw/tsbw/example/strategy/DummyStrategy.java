@@ -7,11 +7,11 @@ import org.openbw.bwapi4j.unit.Barracks;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.MobileUnit;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
+import org.openbw.tsbw.unit.SCV;
 
 /**
  * This is an extremely basic strategy to get you started.
@@ -41,8 +41,8 @@ public class DummyStrategy extends AbstractGameStrategy {
 			
 			logger.info("worker {} was added.", worker);
 			
-			// let's add every new worker to the mining squad by default
-			myInventory.getMineralWorkers().add(worker);
+			// let's make every worker mine by default
+			worker.mine();
 		}
 
 		@Override
@@ -177,7 +177,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 		
 		this.myInventory.getBuildings().addListener(buildingsListener);
 		this.myInventory.getArmyUnits().addListener(armyListener);
-		this.myInventory.getAllWorkers().addListener(workerListener);
+		this.myInventory.getWorkers().addListener(workerListener);
 		this.enemyInventory.getBuildings().addListener(enemyBuildingsListener);
 		this.enemyInventory.getArmyUnits().addListener(enemyArmyListener);
 	}
@@ -188,17 +188,19 @@ public class DummyStrategy extends AbstractGameStrategy {
 		// at frame 3000 send out a single scout to explore the map.
 		// we do this by simply moving the first worker we find from the mining squad to the scouts squad.
 		if (frame == 3000) {
-			myInventory.getMineralWorkers().move(myInventory.getMineralWorkers().first(), myInventory.getScouts());
+			SCV scout = this.myInventory.getAvailableWorker();
+			scout.setAvailable(false);
+			this.myInventory.getScouts().add(scout);
 		}
 				
 		// train workers until we have 16 workers.
 		// we keep count of available minerals while we decide on how to spend them.
-		if (this.myInventory.getAllWorkers().size() < 16 && availableMinerals >= 50) {
+		if (this.myInventory.getWorkers().size() < 22 && availableMinerals >= 50) {
 			availableMinerals -= trainWorker();
 		}
 		
 		// as long as we have extra minerals available, spend it on marines
-		for (Barracks barracks : myInventory.getBarracks()) {
+		for (Barracks barracks : this.myInventory.getBarracks()) {
 			if (!barracks.isTraining() && availableMinerals >= 50) {
 				barracks.trainMarine();
 				availableMinerals -= 50;
@@ -207,7 +209,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 				
 		// build supply depots as required: if available supply is less than some threshold queue up a supply depot to be built.
 		// in this case, we make the threshold depend on the number of command centers and barracks we have.
-		int threshold = myInventory.getCommandCenters().size() * 4 + myInventory.getBarracks().size() * 4;
+		int threshold = this.myInventory.getCommandCenters().size() * 4 + this.myInventory.getBarracks().size() * 4;
 		
 		if (availableSupply + buildingPlanner.getCount(ConstructionType.Terran_Supply_Depot) * UnitType.Terran_Supply_Depot.supplyProvided() <= threshold) {
 
@@ -216,7 +218,12 @@ public class DummyStrategy extends AbstractGameStrategy {
 		}
 		
 		// "end-game"
-		if (availableMinerals > 250) {
+		if (this.myInventory.getWorkers().size() == 13 && this.myInventory.getCommandCenters().size() == 1 && this.buildingPlanner.getCount(ConstructionType.Terran_Command_Center) == 0) {
+		
+			this.buildingPlanner.queue(ConstructionType.Terran_Command_Center);
+			availableMinerals -= ConstructionType.Terran_Command_Center.getMineralPrice();
+		}
+		if (availableMinerals > 250 && (this.myInventory.getCommandCenters().size() > 1 || this.buildingPlanner.getCount(ConstructionType.Terran_Command_Center) > 0)) {
 			
 			this.buildingPlanner.queue(ConstructionType.Terran_Barracks);
 		}
@@ -224,7 +231,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 		if (frame % 4000 == 0 && !this.enemyInventory.getBuildings().isEmpty()) {
 			
 			Building building = this.enemyInventory.getBuildings().first();
-			myInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
+			this.myInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
 		}
 	}
 

@@ -13,10 +13,10 @@ import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.Factory;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
+import org.openbw.tsbw.unit.SCV;
 
 /**
  * Manages all building construction for the game.
@@ -106,7 +106,7 @@ public class BuildingPlanner {
 		
 		this.done = false;
 		this.projects.clear();
-		this.myInventory.getUnderConstruction().addListener(constructionListener);
+		this.myInventory.getConstructions().addListener(constructionListener);
 		this.myInventory.getBuildings().addListener(buildingListener);
 	}
 

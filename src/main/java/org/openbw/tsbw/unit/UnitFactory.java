@@ -7,6 +7,7 @@ import org.openbw.bwapi4j.unit.Unit;
 public class UnitFactory extends org.openbw.bwapi4j.unit.UnitFactory {
 
 	public UnitFactory(BW bw) {
+		
 		super(bw);
 	}
 
@@ -21,10 +22,15 @@ public class UnitFactory extends org.openbw.bwapi4j.unit.UnitFactory {
 		case Resource_Vespene_Geyser:
 			unit = new VespeneGeyser(unitId);
 			break;
+		case Terran_SCV:
+			unit = new SCV(unitId);
+			break;
 		default:
 			unit = super.createUnit(unitId, unitType, timeSpotted);	
 		}
+		
+		setBW(unit);
+		
 		return unit;
 	}
-	
 }

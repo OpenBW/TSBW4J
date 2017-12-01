@@ -11,7 +11,6 @@ import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.unit.Building;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
@@ -19,6 +18,7 @@ import org.openbw.tsbw.analysis.PPF2;
 import org.openbw.tsbw.building.action.Action;
 import org.openbw.tsbw.building.action.BuildAction;
 import org.openbw.tsbw.building.action.MoveAction;
+import org.openbw.tsbw.unit.SCV;
 
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -141,29 +141,19 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 				/* no construction site yet: take strongest worker */
 				if (this.constructionSite == null) {
 					
-					Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
-					this.builder = myInventory.getAvailableWorkers().stream().filter(w -> !w.isGatheringGas()).max(comp).orElse(null);
+					Comparator<SCV> comparator = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
+					this.builder = myInventory.getAvailableWorkers().max(comparator).orElse(null);
 					
 				/* construction site defined: take closest worker */
 				} else {
 					
-					double distance = Double.MAX_VALUE;
-					
-					for (SCV worker : this.myInventory.getAvailableWorkers()) {
-						
-						if (!worker.isGatheringGas()) {
-						double currentDistance = mapAnalyzer.getGroundDistance(worker.getTilePosition(), constructionSite);
-							if (currentDistance < distance) {
-								distance = currentDistance;
-								this.builder = worker;
-							}
-						}
-					}
+					Comparator<SCV> comparator = (u1, u2) -> Integer.compare(mapAnalyzer.getGroundDistance(u1.getTilePosition(), constructionSite), mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite));
+					this.builder = myInventory.getAvailableWorkers().min(comparator).orElse(null);
 				}
 				if (this.builder == null) {
 					receive();
 				} else {
-					this.myInventory.getAvailableWorkers().remove(this.builder);
+					this.builder.setAvailable(false);
 					logger.debug("{}: found builder {} and removed from available workers.", this.interactionHandler.getFrameCount(), this.builder);
 				}
 			} finally {
@@ -234,7 +224,7 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 			
 			// for performance reasons: estimated mining only needs to be calculated if we don't have enough minerals anyways
 			if (minerals < this.constructionType.getMineralPrice()) {
-				estimatedMining = estimateMineralsMinedDuringTravel(this.myInventory.getMineralWorkers().size() - 1);
+				estimatedMining = estimateMineralsMinedDuringTravel((int)this.myInventory.getAvailableWorkers().count() - 1);
 			}
 			
 			// TODO estimate gas mining as well and adjust moveout accordingly
@@ -355,7 +345,7 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 			receive();
 		}
 		
-		this.myInventory.getAvailableWorkers().add(this.builder);
+		this.builder.setAvailable(true);
 		logger.debug("{}: builder {} released.", this.interactionHandler.getFrameCount(), this.builder);
 	}
 	

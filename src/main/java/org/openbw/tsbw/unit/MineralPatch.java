@@ -1,54 +1,48 @@
 package org.openbw.tsbw.unit;
 
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.MapDrawer;
-import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.Constants;
+import org.openbw.tsbw.Group;
 import org.openbw.tsbw.MapAnalyzer;
+
+import bwta.Region;
 
 
 public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 
-	private static final Logger logger = LogManager.getLogger();
-	
-	public enum Status {BEING_MINED, FREE};
-	
-	private Status status;
+	private MapAnalyzer mapAnalyzer;
+	private Region myRegion;
+	private Group<MineralPatch> mineralPatches;
 	
 	private int assignedScvs;
-	private Position myRegionCenter;
+	private int dyToClosestCC;
+	private int dxToClosestCC;
+	private double roundTripTimeToClosestCC;
 	
-	private CommandCenter closestCommandCenter;
-	private int dyToClosestCC = Integer.MAX_VALUE;
-	private int dxToClosestCC = Integer.MAX_VALUE;
-	private double roundTripTimeToClosestCC = Double.MAX_VALUE;
-	
-	/* default */ MineralPatch(int id) {
+	MineralPatch(int id) {
+		
 		super(id);
-		this.status = Status.FREE;
-		this.assignedScvs = 0;
+		this.dyToClosestCC = Integer.MAX_VALUE;
+		this.dxToClosestCC = Integer.MAX_VALUE;
+		this.roundTripTimeToClosestCC = Double.MAX_VALUE;
 	}
 
-	public Status getStatus() {
-		return this.status;
-	}
-	
-	public void setStatus(Status status) {
-		this.status = status;
+	public void initialize(MapAnalyzer mapAnalyzer, Group<MineralPatch> mineralPatches) {
+		
+		this.mapAnalyzer = mapAnalyzer;
+		this.mineralPatches = mineralPatches;
+		this.myRegion = this.mapAnalyzer.getRegion(this.getInitialPosition());
+		this.assignedScvs = 0;
 	}
 	
 	public double getRoundTripTime() {
+		
 		return roundTripTimeToClosestCC;
-	}
-	
-	public CommandCenter getClosestCommandCenter() {
-		return this.closestCommandCenter;
 	}
 	
 	public double getMiningFactor() {
@@ -62,33 +56,27 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 		return factor;
 	}
 	
-	public void resetDistances() {
-		this.closestCommandCenter = null;
+	public void updateDistance(Group<CommandCenter> commandCenters) {
+		
 		this.dyToClosestCC = Integer.MAX_VALUE;
 		this.dxToClosestCC = Integer.MAX_VALUE;
 		this.roundTripTimeToClosestCC = Double.MAX_VALUE;
+		for (CommandCenter cc : commandCenters) {
+			updateDistance(cc);
+		}
+		
 	}
 	
-	public void updateDistance(MapAnalyzer mapAnalyzer, CommandCenter commandCenter, boolean wipeScvCount) {
+	public void updateDistance(CommandCenter commandCenter) {
 		
-		if (wipeScvCount) {
-			this.assignedScvs = 0;
-		}
-		
-		if (this.myRegionCenter == null) {
-			this.myRegionCenter = mapAnalyzer.getRegionCenter(this.getTilePosition());
-			if (this.myRegionCenter == null) {
-				logger.error("Could not get region for {} at {}", this, this.getTilePosition());
-			}
-		}
-		Position commandCenterRegionCenter = mapAnalyzer.getRegionCenter(commandCenter.getTilePosition());
+		Region ccRegion = this.mapAnalyzer.getRegion(commandCenter.getPosition());
 		
 		double roundTripTime;
 		double groundDistance;
 		int dx = this.getPosition().getX() - commandCenter.getPosition().getX();
 		int dy = this.getPosition().getY() - commandCenter.getPosition().getY();
 		
-		if (myRegionCenter != null && myRegionCenter.equals(commandCenterRegionCenter)) {
+		if (ccRegion != null && ccRegion.equals(this.myRegion)) {
 			
 			groundDistance = this.getDistance(commandCenter);
 			
@@ -106,14 +94,16 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 		
 		if (groundDistance > 0 && roundTripTime < this.roundTripTimeToClosestCC) {
 			
-			this.closestCommandCenter = commandCenter;
+			this.mineralPatches.remove(this);
 			this.roundTripTimeToClosestCC = roundTripTime;
 			this.dxToClosestCC = dx;
 			this.dyToClosestCC = dy;
+			this.mineralPatches.add(this);
 		}
 	}
 
 	public void drawInfo(MapDrawer mapDrawer) {
+		
 		mapDrawer.drawBoxMap(
 				this.getX() - UnitType.Resource_Mineral_Field.width()  / 2, 
 				this.getY() - UnitType.Resource_Mineral_Field.height() / 2, 
@@ -130,29 +120,34 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 		mapDrawer.drawTextMap(x - 40, y +  5, "dx: " + this.dxToClosestCC + "; dy: " + this.dyToClosestCC);
 	}
 	
-	/**
-	 * {@link Comparable#compareTo(Object)}
-	 * Note: this class has a natural ordering that is inconsistent with equals.
-	 */
 	@Override
 	public int compareTo(Unit otherUnit) {
+		
 		if (otherUnit instanceof MineralPatch) {
+			
 			double comparison = ((MineralPatch)otherUnit).getMiningFactor() - this.getMiningFactor();
 			if (comparison == 0) {
-				return super.compareTo(otherUnit);
+				
+				return super.compareTo((MineralPatch)otherUnit);
 			} else {
+				
 				return (int)Math.signum(comparison);
 			}
-		} else {
-			return super.compareTo(otherUnit);
 		}
+		return super.compareTo(otherUnit);
 	}
 
 	public void removeScv() {
+		
+		this.mineralPatches.remove(this);
 		this.assignedScvs--;
+		this.mineralPatches.add(this);
 	}
 
 	public void addScv() {
+		
+		this.mineralPatches.remove(this);
 		this.assignedScvs++;
+		this.mineralPatches.add(this);
 	}
 }

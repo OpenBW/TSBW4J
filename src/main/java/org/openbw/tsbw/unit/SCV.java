@@ -25,7 +25,7 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV {
 	
 	public void mine() {
 		
-		this.workerActor.mine();
+		this.workerActor.mineMinerals();
 	}
 
 	public boolean isAvailable() {
@@ -37,7 +37,7 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV {
 		
 		this.available = available;
 		if (available) {
-			this.workerActor.mine();
+			this.workerActor.mineMinerals();
 		} else {
 			this.workerActor.stopMine();
 		}

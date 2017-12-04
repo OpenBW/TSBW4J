@@ -1,10 +1,10 @@
-package org.openbw.tsbw.mining;
+package org.openbw.tsbw.micro;
 
-public abstract class WorkerMessage {
+public abstract class Message {
 
 	protected String senderID;
 	
-	public WorkerMessage(String senderID) {
+	public Message(String senderID) {
 	
 		this.senderID = senderID;
 	}

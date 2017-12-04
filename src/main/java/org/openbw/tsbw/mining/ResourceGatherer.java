@@ -6,15 +6,15 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.unit.CommandCenter;
-import org.openbw.tsbw.FrameUpdate;
+import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.Subscriber;
+import org.openbw.tsbw.micro.FrameUpdate;
 import org.openbw.tsbw.micro.math.AssignmentProblem;
 import org.openbw.tsbw.unit.MineralPatch;
 import org.openbw.tsbw.unit.SCV;
-import org.openbw.tsbw.unit.VespeneGeyser;
 
 public class ResourceGatherer implements Subscriber<FrameUpdate> {
 
@@ -72,7 +72,7 @@ public class ResourceGatherer implements Subscriber<FrameUpdate> {
 	};
 	
 	private Group<MineralPatch> mineralPatches;
-	private Group<VespeneGeyser> geysers;
+	private Group<Refinery> refineries;
 	private Group<CommandCenter> commandCenters;
 	private Squad<SCV> scvs;
 	private WorkerBoard publicBoard;
@@ -84,16 +84,16 @@ public class ResourceGatherer implements Subscriber<FrameUpdate> {
 	private void insertActor(SCV scv) {
 		
 		WorkerActor actor = new WorkerActor(scv, publicBoard);
-		actor.initialize(mineralPatches, geysers);
+		actor.initialize(mineralPatches, refineries);
 		scv.setActor(actor);
 	}
 	
-	public void initialize(Squad<SCV> scvs, Group<CommandCenter> commandCenters, Group<MineralPatch> mineralPatches, Group<VespeneGeyser> geysers) {
+	public void initialize(Squad<SCV> scvs, Group<CommandCenter> commandCenters, Group<MineralPatch> mineralPatches, Group<Refinery> refineries) {
 		
 		this.scvs = scvs;
 		this.commandCenters = commandCenters;
 		this.mineralPatches = mineralPatches;
-		this.geysers = geysers;
+		this.refineries = refineries;
 		this.publicBoard = new WorkerBoard();
 		this.commandCenters.addListener(commandCenterListener);
 		for (MineralPatch patch : mineralPatches) {
@@ -165,5 +165,10 @@ public class ResourceGatherer implements Subscriber<FrameUpdate> {
 			
 			scv.getActor().onFrame(frameUpdate);
 		}
+	}
+	
+	public void stop() {
+		
+		
 	}
 }

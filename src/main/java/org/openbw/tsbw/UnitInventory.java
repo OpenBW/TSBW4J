@@ -13,6 +13,7 @@ import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.Factory;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.PlayerUnit;
+import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.Starport;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.unit.MineralPatch;
@@ -26,6 +27,7 @@ public class UnitInventory {
 	private Group<MineralPatch> mineralPatches;
 	private Group<VespeneGeyser> vespeneGeysers;
 	private Group<CommandCenter> commandCenters;
+	private Group<Refinery> refineries;
 	private Group<Barracks> barracks;
 	private Group<Factory> factories;
 	private Group<Starport> starports;
@@ -47,6 +49,7 @@ public class UnitInventory {
 		this.mineralPatches = new Group<>();
 		this.vespeneGeysers = new Group<>();
 		this.commandCenters = new Group<>();
+		this.refineries = new Group<>();
 		this.barracks = new Group<>();
 		this.factories = new Group<>();
 		this.starports = new Group<>();
@@ -67,6 +70,7 @@ public class UnitInventory {
 		this.mineralPatches.clear();
 		this.vespeneGeysers.clear();
 		this.commandCenters.clear();
+		this.refineries.clear();
 		this.barracks.clear();
 		this.factories.clear();
 		this.starports.clear();
@@ -101,6 +105,9 @@ public class UnitInventory {
 					if (building instanceof CommandCenter) {
 						
 						this.commandCenters.add((CommandCenter)building);
+					} else if (building instanceof Refinery) {
+											
+						this.refineries.add((Refinery)building);
 					} else if (building instanceof Barracks) {
 						
 						this.barracks.add((Barracks)building);
@@ -127,8 +134,13 @@ public class UnitInventory {
 				} else if (unit instanceof MobileUnit) {
 					
 					this.armyUnits.add((MobileUnit)unit);
+				} else if (unit instanceof PlayerUnit) {
+					
+					this.allUnits.add((PlayerUnit)unit);
+				} else {
+					
+					// TODO e.g. critter
 				}
-				this.allUnits.add((PlayerUnit)unit);
 			}
 		}
 	}
@@ -152,6 +164,9 @@ public class UnitInventory {
 					if (building instanceof CommandCenter) {
 						
 						this.commandCenters.destroy((CommandCenter)building);
+					} else if (building instanceof Refinery) {
+											
+						this.refineries.destroy((Refinery)building);
 					} else if (building instanceof Barracks) {
 						
 						this.barracks.destroy((Barracks)building);
@@ -184,59 +199,76 @@ public class UnitInventory {
 	}
 	
 	public Group<MineralPatch> getMineralPatches() {
-		return mineralPatches;
+		
+		return this.mineralPatches;
 	}
 
 	public Group<VespeneGeyser> getVespeneGeysers() {
-		return vespeneGeysers;
+		
+		return this.vespeneGeysers;
 	}
 
 	public Group<CommandCenter> getCommandCenters() {
-		return commandCenters;
+		
+		return this.commandCenters;
 	}
 
+	public Group<Refinery> getRefineries() {
+		return this.refineries;
+	}
+	
 	public Group<Barracks> getBarracks() {
-		return barracks;
+		
+		return this.barracks;
 	}
 
 	public Group<Factory> getFactories() {
-		return factories;
+		
+		return this.factories;
 	}
 
 	public Group<Starport> getStarports() {
-		return starports;
+		return this.starports;
 	}
 
 	public Group<Building> getBuildings() {
-		return buildings;
+		
+		return this.buildings;
 	}
 
 	public Group<Building> getConstructions() {
-		return constructions;
+		
+		return this.constructions;
 	}
 
 	public Collection<PlayerUnit> getAllUnits() {
-		return allUnits;
+		
+		return this.allUnits;
 	}
 
 	public Group<PlayerUnit> getDestroyedUnits() {
-		return destroyedUnits;
+		
+		return this.destroyedUnits;
 	}
 
 	public Squad<MobileUnit> getScouts() {
-		return scouts;
+		
+		return this.scouts;
 	}
 
 	public Squad<SCV> getWorkers() {
-		return workers;
+		
+		return this.workers;
 	}
 
 	public Squad<MobileUnit> getArmyUnits() {
-		return armyUnits;
+		
+		return this.armyUnits;
 	}
 
 	public Collection<Bullet> getBullets() {
-		return bullets;
+		
+		return this.bullets;
 	}
 	
 	public CommandCenter getMain() {

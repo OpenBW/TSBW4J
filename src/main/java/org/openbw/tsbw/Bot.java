@@ -27,6 +27,7 @@ import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.building.FactoryConstruction;
 import org.openbw.tsbw.building.RefineryConstruction;
 import org.openbw.tsbw.building.SupplyDepotConstruction;
+import org.openbw.tsbw.micro.FrameUpdate;
 import org.openbw.tsbw.mining.ResourceGatherer;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingFactory;
@@ -174,7 +175,7 @@ public abstract class Bot {
 			return;
 		}
 		
-		FrameUpdate frameUpdate = new FrameUpdate();
+		FrameUpdate frameUpdate = new FrameUpdate(frameCount, this.interactionHandler.getRemainingLatencyFrames(), this.unitInventories.get(this.player2));
 		this.subscribers.stream().forEach(s -> s.onReceive(frameUpdate));
 		
 		if (scoutingEnabled) {
@@ -281,7 +282,6 @@ public abstract class Bot {
 	}
 	
 	public void onUnitEvade(Unit unit) {
-		// do nothing
 		
 	}
 
@@ -367,7 +367,7 @@ public abstract class Bot {
 		// Once the initial 4 workers and the command centers have fired their triggers we truly start the game
 		if (!gameStarted && inventory.getWorkers().size() == 4 && !inventory.getCommandCenters().isEmpty()) {
 			
-			this.resourceGatherer.initialize(inventory.getWorkers(), inventory.getCommandCenters(), inventory.getMineralPatches(), inventory.getVespeneGeysers());
+			this.resourceGatherer.initialize(inventory.getWorkers(), inventory.getCommandCenters(), inventory.getMineralPatches(), inventory.getRefineries());
 			inventory.getAvailableWorkers().forEach(w -> w.mine());
 			gameStrategy.start(player1.minerals(), player1.gas());
 			gameStarted = true;

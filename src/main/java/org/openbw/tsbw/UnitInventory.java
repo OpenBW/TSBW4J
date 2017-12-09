@@ -13,10 +13,10 @@ import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.Factory;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.PlayerUnit;
-import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.Starport;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.unit.MineralPatch;
+import org.openbw.tsbw.unit.Refinery;
 import org.openbw.tsbw.unit.SCV;
 import org.openbw.tsbw.unit.VespeneGeyser;
 
@@ -44,6 +44,9 @@ public class UnitInventory {
 	private Collection<Bullet> bullets;
 	private MapAnalyzer mapAnalyzer;
 	
+	private int observedMineralsSpent;
+	private int observedGasSpent;
+	
 	public UnitInventory() {
 		
 		this.mineralPatches = new Group<>();
@@ -65,6 +68,8 @@ public class UnitInventory {
 
 	public void initialize(Collection<Bullet> bullets, MapAnalyzer mapAnalyzer) {
 		
+		this.observedGasSpent = 0;
+		this.observedMineralsSpent = -600;
 		this.bullets = bullets;
 		this.mapAnalyzer = mapAnalyzer;
 		this.mineralPatches.clear();
@@ -84,6 +89,8 @@ public class UnitInventory {
 	}
 	
 	public void register(Unit unit) {
+		
+		boolean addedPlayerUnit = false;
 		
 		if (unit instanceof VespeneGeyser) {
 			
@@ -120,7 +127,7 @@ public class UnitInventory {
 					}
 					this.constructions.remove(building);
 					this.buildings.add(building);
-					this.allUnits.add(building);
+					addedPlayerUnit = this.allUnits.add(building);
 					
 				} else {
 					
@@ -128,20 +135,28 @@ public class UnitInventory {
 				}
 			} else {
 				
-				if (unit instanceof SCV) {
+				if (unit instanceof PlayerUnit) {
 					
-					this.workers.add((SCV)unit);
-				} else if (unit instanceof MobileUnit) {
+					if (unit instanceof SCV) {
+						
+						this.workers.add((SCV) unit);
+					} else if (unit instanceof MobileUnit) {
+						
+						this.armyUnits.add((MobileUnit)unit);
+					}
+					addedPlayerUnit = this.allUnits.add((PlayerUnit)unit);
 					
-					this.armyUnits.add((MobileUnit)unit);
-				} else if (unit instanceof PlayerUnit) {
-					
-					this.allUnits.add((PlayerUnit)unit);
 				} else {
 					
 					// TODO e.g. critter
 				}
 			}
+		}
+		
+		if (addedPlayerUnit) {
+			
+			this.observedMineralsSpent += ((PlayerUnit) unit).getMineralPrice();
+			this.observedGasSpent += ((PlayerUnit) unit).getGasPrice();
 		}
 	}
 	
@@ -287,5 +302,15 @@ public class UnitInventory {
 	public Stream<SCV> getAvailableWorkers() {
 		
 		return this.workers.stream().filter(w -> w.isAvailable());
+	}
+	
+	public int getObservedMineralsSpent() {
+		
+		return this.observedMineralsSpent;
+	}
+	
+	public int getObservedGasSpent() {
+		
+		return this.observedGasSpent;
 	}
 }

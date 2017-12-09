@@ -18,7 +18,6 @@ import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.type.Key;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.PlayerUnit;
-import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.building.BarracksConstruction;
 import org.openbw.tsbw.building.BuildingPlanner;
@@ -34,8 +33,11 @@ import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
 import org.openbw.tsbw.unit.MineralPatch;
+import org.openbw.tsbw.unit.Refinery;
+import org.openbw.tsbw.unit.SCV;
 import org.openbw.tsbw.unit.UnitFactory;
 import org.openbw.tsbw.unit.VespeneGeyser;
+import org.openbw.tsbw.unit.WorkerBoard;
 
 import bwta.BWTA;
 
@@ -62,6 +64,8 @@ public abstract class Bot {
 	protected StrategyFactory strategyFactory;
 	protected AbstractGameStrategy gameStrategy;
 	
+	protected WorkerBoard workerBoard;
+	
 	protected boolean scoutingEnabled = true;
 	protected boolean cleanLogging = false;
 	protected boolean gameStarted = false;
@@ -72,7 +76,8 @@ public abstract class Bot {
 		
 		logger.trace("executing run().");
 		this.bw = new BW(this.eventListener);
-		this.bw.setUnitFactory(new UnitFactory(this.bw));
+		this.workerBoard = new WorkerBoard();
+		this.bw.setUnitFactory(new UnitFactory(this.bw, workerBoard));
 		logger.debug("starting game...");
 		bw.startGame();
 	}
@@ -137,8 +142,8 @@ public abstract class Bot {
 		
 		UnitInventory myInventory = this.unitInventories.get(this.player1);
 		
+		this.workerBoard.initialize(this.mapAnalyzer, myInventory);
 		this.resourceGatherer = new ResourceGatherer();
-		subscribe(this.resourceGatherer);
 		
 		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.strategyFactory = new StrategyFactory(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
@@ -175,7 +180,9 @@ public abstract class Bot {
 			return;
 		}
 		
-		FrameUpdate frameUpdate = new FrameUpdate(frameCount, this.interactionHandler.getRemainingLatencyFrames(), this.unitInventories.get(this.player2));
+		FrameUpdate frameUpdate = new FrameUpdate(frameCount, player1.minerals(), player1.gas(), 
+				this.interactionHandler.getRemainingLatencyFrames(), this.unitInventories.get(this.player2));
+		
 		this.subscribers.stream().forEach(s -> s.onReceive(frameUpdate));
 		
 		if (scoutingEnabled) {
@@ -310,6 +317,14 @@ public abstract class Bot {
 		if (unit instanceof PlayerUnit) {
 			
 			UnitInventory inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
+			if (unit instanceof SCV) {
+            	
+        		SCV scv = (SCV) unit;
+        		if (scv.getPlayer().equals(this.player1)) {
+        			
+	        		unsubscribe((SCV)unit);
+        		}
+        	}
 			if (inventory == null) {
 				
 				logger.error("Could not find a unit inventory for player {}.", ((PlayerUnit) unit).getPlayer());
@@ -357,6 +372,15 @@ public abstract class Bot {
         if (unit instanceof PlayerUnit) {
         	
             inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
+            if (unit instanceof SCV) {
+            	
+        		SCV scv = (SCV) unit;
+        		if (scv.getPlayer().equals(this.player1)) {
+        			
+	        		scv.initialize(inventory.getMineralPatches(), inventory.getRefineries());
+	        		subscribe((SCV)unit);
+        		}
+        	}
         } else {
         	
             inventory = this.unitInventories.get(this.player1);
@@ -367,8 +391,8 @@ public abstract class Bot {
 		// Once the initial 4 workers and the command centers have fired their triggers we truly start the game
 		if (!gameStarted && inventory.getWorkers().size() == 4 && !inventory.getCommandCenters().isEmpty()) {
 			
-			this.resourceGatherer.initialize(inventory.getWorkers(), inventory.getCommandCenters(), inventory.getMineralPatches(), inventory.getRefineries());
-			inventory.getAvailableWorkers().forEach(w -> w.mine());
+			this.resourceGatherer.initialize(inventory.getWorkers(), inventory.getCommandCenters(), inventory.getMineralPatches());
+			inventory.getAvailableWorkers().forEach(w -> w.gatherMinerals());
 			gameStrategy.start(player1.minerals(), player1.gas());
 			gameStarted = true;
 		}

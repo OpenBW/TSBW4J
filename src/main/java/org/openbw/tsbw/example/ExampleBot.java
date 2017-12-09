@@ -34,6 +34,6 @@ public class ExampleBot extends Bot {
 		this.gameStrategy = strategyFactory.getStrategy("dummy");
 		
 		this.interactionHandler.enableUserInput();
-		this.interactionHandler.setLocalSpeed(20);
+		this.interactionHandler.setLocalSpeed(40);
 	}
 }

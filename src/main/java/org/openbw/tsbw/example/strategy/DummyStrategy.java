@@ -2,12 +2,12 @@ package org.openbw.tsbw.example.strategy;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.Barracks;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.MobileUnit;
-import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
@@ -42,7 +42,7 @@ public class DummyStrategy extends AbstractGameStrategy {
 			logger.info("worker {} was added.", worker);
 			
 			// let's make every worker mine by default
-			worker.mine();
+			worker.gatherMinerals();
 		}
 
 		@Override
@@ -67,6 +67,8 @@ public class DummyStrategy extends AbstractGameStrategy {
 		public void onAdd(MobileUnit unit) {
 			
 			logger.info("unit {} was added.", unit);
+
+			myInventory.getArmyUnits().stream().forEach(u -> u.move(new Position(2000, 2000)));
 		}
 
 		@Override
@@ -187,16 +189,22 @@ public class DummyStrategy extends AbstractGameStrategy {
 		
 		// at frame 3000 send out a single scout to explore the map.
 		// we do this by simply moving the first worker we find from the mining squad to the scouts squad.
-		if (frame == 3000) {
-			SCV scout = this.myInventory.getAvailableWorker();
-			scout.setAvailable(false);
-			this.myInventory.getScouts().add(scout);
-		}
-				
-		// train workers until we have 16 workers.
+//		if (frame == 3000) {
+//			SCV scout = this.myInventory.getAvailableWorker();
+//			scout.setAvailable(false);
+//			this.myInventory.getScouts().add(scout);
+//		}
+		// train workers until we have 24 workers.
 		// we keep count of available minerals while we decide on how to spend them.
-		if (this.myInventory.getWorkers().size() < 22 && availableMinerals >= 50) {
-			availableMinerals -= trainWorker();
+		if (this.myInventory.getWorkers().size() < 40 && availableMinerals >= 50) {
+			availableMinerals -= trainWorker(availableMinerals);
+		}
+		
+		if (availableMinerals > 150 && (this.myInventory.getCommandCenters().size() + this.buildingPlanner.getCount(ConstructionType.Terran_Command_Center) == 2)
+				&& (this.myInventory.getBarracks().size() + this.buildingPlanner.getCount(ConstructionType.Terran_Barracks) < 7)) {
+			
+			this.buildingPlanner.queue(ConstructionType.Terran_Barracks);
+			availableMinerals -= 150;
 		}
 		
 		// as long as we have extra minerals available, spend it on marines
@@ -217,21 +225,21 @@ public class DummyStrategy extends AbstractGameStrategy {
 			availableMinerals -= ConstructionType.Terran_Supply_Depot.getMineralPrice();
 		}
 		
-		// "end-game"
-		if (this.myInventory.getWorkers().size() == 13 && this.myInventory.getCommandCenters().size() == 1 && this.buildingPlanner.getCount(ConstructionType.Terran_Command_Center) == 0) {
+		if (this.myInventory.getWorkers().size() == 13 && this.myInventory.getCommandCenters().size() + this.buildingPlanner.getCount(ConstructionType.Terran_Command_Center) == 1) {
 		
 			this.buildingPlanner.queue(ConstructionType.Terran_Command_Center);
 			availableMinerals -= ConstructionType.Terran_Command_Center.getMineralPrice();
 		}
-		if (availableMinerals > 250 && (this.myInventory.getCommandCenters().size() > 1 || this.buildingPlanner.getCount(ConstructionType.Terran_Command_Center) > 0)) {
-			
-			this.buildingPlanner.queue(ConstructionType.Terran_Barracks);
-		}
 		
-		if (frame % 4000 == 0 && !this.enemyInventory.getBuildings().isEmpty()) {
-			
-			Building building = this.enemyInventory.getBuildings().first();
-			this.myInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
+//		if (frame % 4000 == 0 && !this.enemyInventory.getBuildings().isEmpty()) {
+//			
+//			Building building = this.enemyInventory.getBuildings().first();
+//			this.myInventory.getArmyUnits().stream().forEach(u -> u.attack(building.getPosition()));
+//		}
+		if (frame == 14000) {
+			System.out.println("marines: " + myInventory.getArmyUnits().size() + " (" + this.self.minerals() + " leftover minerals).");
+			System.out.println("supply used: " + this.self.supplyUsed() + " total: " + this.self.supplyTotal());
+			this.interactionHandler.leaveGame();
 		}
 	}
 
@@ -239,17 +247,16 @@ public class DummyStrategy extends AbstractGameStrategy {
 	 * Trains a worker only if there is currently no worker in the queue.
 	 * @return minerals spent: 50 if a new worker is trained, 0 else.
 	 */
-	private int trainWorker() {
+	private int trainWorker(int availableMinerals) {
 		
-		Group<CommandCenter> commandCenters = this.myInventory.getCommandCenters();
-		if (!commandCenters.isEmpty()) {
-			CommandCenter commandCenter = commandCenters.first();
+		int cost = 0;
+		for (CommandCenter commandCenter : this.myInventory.getCommandCenters()) {
 			
-			if (!commandCenter.isTraining()) {
+			if (!commandCenter.isTraining() && availableMinerals - cost >= 50) {
 				commandCenter.trainWorker();
-				return 50;
+				cost += 50;
 			}
 		}
-		return 0;
+		return cost;
 	}
 }

@@ -20,10 +20,10 @@
 	    <!-- set log levels for individual classes like this -->
 		<Logger name="org.openbw.bwapi4j.BW"							level="error" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
 	    <Logger name="org.openbw.tsbw.UnitInventory"					level="trace" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
-		<Logger name="org.openbw.tsbw.Bot"								level="trace" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
+		<Logger name="org.openbw.tsbw.Bot"								level="error" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
 		<Logger name="org.openbw.tsbw.example.strategy.DummyStrategy"	level="error" additivity="false"><AppenderRef ref="Console"/><AppenderRef ref="File"/></Logger>
 		
-		<Root level="error">
+		<Root level="trace">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="File" />
 		</Root>

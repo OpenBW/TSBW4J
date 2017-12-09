@@ -137,6 +137,13 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 		return super.compareTo(otherUnit);
 	}
 
+	public void resetScvCount() {
+		
+		this.mineralPatches.remove(this);
+		this.assignedScvs = 0;
+		this.mineralPatches.add(this);
+	}
+	
 	public void removeScv() {
 		
 		this.mineralPatches.remove(this);

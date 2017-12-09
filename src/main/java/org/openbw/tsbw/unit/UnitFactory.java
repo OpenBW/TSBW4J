@@ -6,9 +6,12 @@ import org.openbw.bwapi4j.unit.Unit;
 
 public class UnitFactory extends org.openbw.bwapi4j.unit.UnitFactory {
 
-	public UnitFactory(BW bw) {
+	private WorkerBoard workerBoard;
+	
+	public UnitFactory(BW bw, WorkerBoard workerBoard) {
 		
 		super(bw);
+		this.workerBoard = workerBoard;
 	}
 
 	@Override
@@ -22,8 +25,11 @@ public class UnitFactory extends org.openbw.bwapi4j.unit.UnitFactory {
 		case Resource_Vespene_Geyser:
 			unit = new VespeneGeyser(unitId);
 			break;
+		case Terran_Refinery:
+			unit = new Refinery(unitId, timeSpotted);
+			break;
 		case Terran_SCV:
-			unit = new SCV(unitId);
+			unit = new SCV(unitId, new WorkerActor(this.workerBoard));
 			break;
 		default:
 			unit = super.createUnit(unitId, unitType, timeSpotted);	

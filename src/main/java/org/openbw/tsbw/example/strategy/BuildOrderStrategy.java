@@ -11,10 +11,10 @@ import org.openbw.bwapi4j.type.WeaponType;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.Factory;
 import org.openbw.bwapi4j.unit.MobileUnit;
-import org.openbw.bwapi4j.unit.Refinery;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
+import org.openbw.tsbw.unit.Refinery;
 import org.openbw.tsbw.unit.SCV;
 
 import bwta.Chokepoint;
@@ -39,7 +39,7 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 		@Override
 		public void onAdd(SCV worker) {
 			
-			worker.mine();
+			worker.gatherMinerals();
 		}
 
 		@Override
@@ -71,7 +71,6 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 				for (int i = 0; i < 3; i++) {
 					SCV gasMiner = myInventory.getAvailableWorker();
 					if (gasMiner != null) {
-						gasMiner.setAvailable(false);
 						gasMiner.gather((Refinery) building);
 					}
 				}

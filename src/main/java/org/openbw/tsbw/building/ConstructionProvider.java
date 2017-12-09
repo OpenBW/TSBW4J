@@ -4,6 +4,7 @@ import java.util.Queue;
 
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.UnitType;
+import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
@@ -32,19 +33,30 @@ public class ConstructionProvider {
 		
 		TilePosition nextPosition = aroundHere;
 		
-		for (int i = 0; !mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) || collidesWithConstruction(nextPosition, projects); i++) {
+		for (int i = 0; true; i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(aroundHere.getX() + x, aroundHere.getY() + y);
-				if (mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) && !collidesWithConstruction(nextPosition, projects)) {
+				if (mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) 
+						&& !collidesWithConstruction(nextPosition, projects) && !collidesWithMiningArea(myInventory, nextPosition)) {
 					
 					return nextPosition;
 				}
 			}
 		}
-		return nextPosition;
+	}
+	
+	protected boolean collidesWithMiningArea(UnitInventory myInventory, TilePosition position) {
+	
+		for (CommandCenter cc : myInventory.getCommandCenters()) {
+			
+			if (cc.getDistance(position.toPosition()) < 192) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	protected boolean collidesWithConstruction(TilePosition position, Queue<Project> projects) {

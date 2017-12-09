@@ -1,21 +1,23 @@
 package org.openbw.tsbw.micro;
 
-import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.Unit;
+import org.openbw.bwapi4j.unit.SCV;
 
-public class AttackUnitCommand extends Command {
+public class AttackUnitCommand implements Command {
 
+	private SCV worker;
 	private Unit victim;
 	
-	public AttackUnitCommand(int issuedAt, Unit victim) {
-		super(issuedAt);
+	public AttackUnitCommand(SCV worker, Unit victim) {
+		
+		this.worker = worker;
 		this.victim = victim;
 	}
 
 	@Override
-	public boolean execute(MobileUnit unit) {
+	public boolean execute() {
 		
-		return unit.attack(this.victim);
+		return worker.attack(this.victim);
 	}
 
 	@Override

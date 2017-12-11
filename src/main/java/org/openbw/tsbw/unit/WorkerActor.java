@@ -18,6 +18,7 @@ import org.openbw.tsbw.micro.ConstructCommand;
 import org.openbw.tsbw.micro.GatherGasCommand;
 import org.openbw.tsbw.micro.GatherMineralsCommand;
 import org.openbw.tsbw.micro.MoveCommand;
+import org.openbw.tsbw.micro.ScoutCommand;
 
 import co.paralleluniverse.actors.BasicActor;
 import co.paralleluniverse.fibers.SuspendExecution;
@@ -58,6 +59,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		this.nextCommand = null;
 		this.gathering = false;
 		this.available = true;
+		this.alive = true;
 		this.lastCommandReturnValue = false;
 		this.HALF_TURN_FRAMES = 180 / UnitType.Terran_SCV.turnRadius();
 	}
@@ -119,15 +121,15 @@ public class WorkerActor extends BasicActor<Message, Void> {
 	protected void scouting() throws InterruptedException, SuspendExecution {
 		
 		this.available = false;
-		this.publicBoard.getUnitInventory().getScouts().add(scv);
-		while(alive) {
+		execute(new ScoutCommand(this.scv, this.publicBoard.getUnitInventory()));
+		while(this.alive) {
 			
 			Message message = receive();
 			if (!(message instanceof FrameUpdate)) {
 				
 				logger.warn("frame {}: {} received {} but am scouting.", this.frame, this.scv, message);
 			}
-			alive &= scv.exists();
+			this.alive &= this.scv.exists();
 		}
 		this.available = true;
 	}
@@ -137,7 +139,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		logger.trace("frame {}: {} is defending.", frame, this.scv);
 		
 		this.nextCommand = new AttackUnitCommand(this.scv, this.attackingEnemies.get(0));
-		while (!this.attackingEnemies.isEmpty()) {
+		while (!this.attackingEnemies.isEmpty() && this.alive) {
 			
 			Message message = receive();
 			if (message instanceof FrameUpdate) {
@@ -147,6 +149,8 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				
 				logger.warn("frame {}: {} received build request but am defending.", this.frame, this.scv);
 			}
+			
+			this.alive &= this.scv.exists();
 		}
 	}
 	
@@ -155,7 +159,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		logger.trace("frame {}: {} waiting for resources: {} minerals and {} gas (currently at {} and {}).", this.frame, this.scv, 
 				requiredMinerals, requiredGas, this.minerals, this.gas);
 		
-		while (alive && (this.minerals < requiredMinerals || this.gas < requiredGas)) {
+		while (this.alive && (this.minerals < requiredMinerals || this.gas < requiredGas)) {
 			
 			Message message = receive();
 			if (message instanceof FrameUpdate) {
@@ -166,7 +170,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				logger.warn("frame {}: {} received build request although I am already constructing (waiting for resources).", this.frame, this.scv);
 			}
 			
-			alive &= this.scv.exists();
+			this.alive &= this.scv.exists();
 		}
 	}
 	
@@ -187,18 +191,18 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		
 		boolean success = false;
 		Command constructCommand = new ConstructCommand(this.scv, constructionSite, type);
-		while(!success && alive) {
+		while(!success && this.alive) {
 			
 			success = execute(constructCommand);
 			if (!success) {
 				logger.error("frame {}: build command failed for {}.", this.frame, this.scv);
 			}
 			receive(m -> m instanceof FrameUpdate);
-			alive &= this.scv.exists();
+			this.alive &= this.scv.exists();
 		}
 		
 		boolean done = false;
-		while (!done && alive) {
+		while (!done && this.alive) {
 			
 			Message message = receive();
 			if (message instanceof FrameUpdate) {
@@ -225,7 +229,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			// TODO abandon building if low on health
 			// TODO ask for help if being attacked
 			
-			alive &= this.scv.exists();
+			this.alive &= this.scv.exists();
 		}
 		this.available = true;
 	}
@@ -238,7 +242,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		this.nextCommand = new GatherGasCommand(this.scv, refinery);
 		
 		boolean done = false;
-		while (!done && alive && refinery.exists()) {
+		while (!done && this.alive && refinery.exists()) {
 			
 			Message message = receive();
 			if (message instanceof FrameUpdate) {
@@ -252,10 +256,13 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			} else if (message instanceof BuildMessage) {
 				
 				logger.warn("frame {}: {} received build request although I am gathering gas.", this.frame, this.scv);
+			} else if (message instanceof ScoutMessage) {
+				
+				logger.warn("frame {}: {} received scout request although I am gathering gas.", this.frame, this.scv);
 			}
 			
 			done &= refinery.getResources() > 0;
-			alive &= this.scv.exists();
+			this.alive &= this.scv.exists();
 		}
 		
 		this.available = true;
@@ -266,7 +273,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		logger.trace("frame {}: {} moving to {}.", this.frame, this.scv, position);
 		
 		boolean success = execute(new MoveCommand(this.scv, position));
-		while (this.scv.getDistance(position) > 96 && alive) {
+		while (this.scv.getDistance(position) > 96 && this.alive) {
 			
 			Message message = receive();
 			if (message instanceof FrameUpdate) {
@@ -280,9 +287,12 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				
 				BuildMessage bm = (BuildMessage) message;
 				constructing(bm.getConstructionSite(), bm.getType());
+			} else if (message instanceof ScoutMessage) {
+				
+				scouting();
 			}
 			
-			alive &= this.scv.exists();
+			this.alive &= this.scv.exists();
 		}
 	}
 	
@@ -297,7 +307,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		}
 		boolean success = false;
 		boolean done = false;
-		while (!done && alive) {
+		while (!done && this.alive) {
 			
 			Message message = receive();
 			if (message instanceof FrameUpdate) {
@@ -338,7 +348,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			}
 			
 			done &= myPatch.getResources() > 0;
-			alive &= this.scv.exists();
+			this.alive &= this.scv.exists();
 		}
 		this.gathering = false;
 		myPatch.removeScv();
@@ -382,7 +392,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		logger.trace("frame {}: {} doRun()", this.frame, this.scv);
 		this.alive = true;
 		
-		while (alive) {
+		while (this.alive) {
 			
 			Message message = receive();
 			if (message instanceof FrameUpdate) {
@@ -403,8 +413,10 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				scouting();
 			}
 			
-			alive &= this.scv.exists();
+			this.alive &= this.scv.exists();
 		}
+		
+		logger.trace("frame {}: {} died ({} hitpoints left).", this.frame, this.scv, this.scv.getHitPoints());
 		
 		return null;
 	}

@@ -21,6 +21,7 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 
 	public void scout() {
 		
+		this.workerActor.setAvailable(false);
 		this.workerActor.sendOrInterrupt(new ScoutMessage());
 	}
 	

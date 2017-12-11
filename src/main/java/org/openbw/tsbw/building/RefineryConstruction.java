@@ -5,10 +5,10 @@ import java.util.Queue;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.UnitType;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
+import org.openbw.tsbw.unit.SCV;
 import org.openbw.tsbw.unit.VespeneGeyser;
 
 public class RefineryConstruction extends ConstructionProvider {

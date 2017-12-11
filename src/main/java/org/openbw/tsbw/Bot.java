@@ -26,12 +26,12 @@ import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.building.FactoryConstruction;
 import org.openbw.tsbw.building.RefineryConstruction;
 import org.openbw.tsbw.building.SupplyDepotConstruction;
-import org.openbw.tsbw.micro.FrameUpdate;
 import org.openbw.tsbw.mining.ResourceGatherer;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
 import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
+import org.openbw.tsbw.unit.FrameUpdate;
 import org.openbw.tsbw.unit.MineralPatch;
 import org.openbw.tsbw.unit.Refinery;
 import org.openbw.tsbw.unit.SCV;
@@ -142,13 +142,14 @@ public abstract class Bot {
 		
 		UnitInventory myInventory = this.unitInventories.get(this.player1);
 		
-		this.workerBoard.initialize(this.mapAnalyzer, myInventory);
 		this.resourceGatherer = new ResourceGatherer();
 		
 		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.strategyFactory = new StrategyFactory(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
 		this.scoutingStrategy.initialize(myInventory.getScouts(), myInventory, this.unitInventories.get(player2));
+		
+		this.workerBoard.initialize(this.mapAnalyzer, myInventory, this.interactionHandler, this.scoutingStrategy);
 		
 		this.bw.getAllUnits().stream().filter(u -> u instanceof MineralPatch)
 				.forEach(u -> myInventory.register((MineralPatch)u));
@@ -165,7 +166,6 @@ public abstract class Bot {
 	
 	final void internalOnEnd(boolean isWinner) {
 		
-		this.buildingPlanner.stop();
 		this.gameStrategy.stop();
 		onEnd(isWinner);
 	}

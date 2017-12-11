@@ -4,9 +4,9 @@ import java.util.Queue;
 
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.UnitType;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
+import org.openbw.tsbw.unit.SCV;
 
 import bwta.Region;
 
@@ -32,18 +32,19 @@ public class BarracksConstruction extends ConstructionProvider {
 		TilePosition position = new TilePosition((center.getX() + choke.getX()) / 2, (center.getY() + choke.getY()) / 2);
 		TilePosition nextPosition = position;
 		
-		for (int i = 0; true; i++) {
+		for (int i = 0; i < MAX_SEARCH_RADIUS; i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(position.getX() + x, position.getY() + y);
 				if (mapAnalyzer.canBuildHere(nextPosition, super.getUnitType(), builder) 
-						&& !collidesWithConstruction(nextPosition, projects) && !collidesWithMiningArea(unitInventory, nextPosition)) {
+						&& !collidesWithConstruction(nextPosition, this.unitType, projects) && !collidesWithMiningArea(unitInventory, nextPosition)) {
 					
 					return nextPosition;
 				}
 			}
 		}
+		return null;
 	}
 }

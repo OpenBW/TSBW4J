@@ -189,20 +189,18 @@ public class DummyStrategy extends AbstractGameStrategy {
 		
 		// at frame 3000 send out a single scout to explore the map.
 		// we do this by simply moving the first worker we find from the mining squad to the scouts squad.
-//		if (frame == 3000) {
-//			SCV scout = this.myInventory.getAvailableWorker();
-//			scout.setAvailable(false);
-//			this.myInventory.getScouts().add(scout);
-//		}
+		if (frame == 3000) {
+			this.myInventory.getAvailableWorker().scout();
+		}
 		// train workers until we have 24 workers.
 		// we keep count of available minerals while we decide on how to spend them.
 		if (this.myInventory.getWorkers().size() < 40 && availableMinerals >= 50) {
 			availableMinerals -= trainWorker(availableMinerals);
 		}
-		
 		if (availableMinerals > 150 && (this.myInventory.getCommandCenters().size() + this.buildingPlanner.getCount(ConstructionType.Terran_Command_Center) == 2)
 				&& (this.myInventory.getBarracks().size() + this.buildingPlanner.getCount(ConstructionType.Terran_Barracks) < 7)) {
 			
+			System.out.println(this.interactionHandler.self().minerals() + " / " + availableMinerals);
 			this.buildingPlanner.queue(ConstructionType.Terran_Barracks);
 			availableMinerals -= 150;
 		}

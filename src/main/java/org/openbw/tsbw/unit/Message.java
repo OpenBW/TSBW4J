@@ -1,6 +1,6 @@
-package org.openbw.tsbw.micro;
+package org.openbw.tsbw.unit;
 
-public abstract class Message {
+abstract class Message {
 
 	protected String senderID;
 	

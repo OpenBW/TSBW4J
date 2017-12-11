@@ -1,7 +1,6 @@
 package org.openbw.tsbw.building;
 
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,6 +8,7 @@ import org.openbw.bwapi4j.InteractionHandler;
 import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.Color;
+import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MapAnalyzer;
@@ -16,21 +16,15 @@ import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.analysis.PPF2;
 import org.openbw.tsbw.unit.SCV;
 
-import co.paralleluniverse.actors.BasicActor;
-import co.paralleluniverse.fibers.SuspendExecution;
-import co.paralleluniverse.strands.Strand;
-
 //TODO the implementation is not robust yet. handle cases:
 //- worker gets killed after assignment but before arriving at construction site
 //- worker gets killed while constructing
 //- construction site gets unavailable after worker assignment
 //- building gets destroyed while constructing
-public class ConstructionProject extends BasicActor<Message, Void> implements Project {
+public class ConstructionProject implements Project {
 
 	private static final Logger logger = LogManager.getLogger();
 	
-	private static final long serialVersionUID = 2L;
-
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
 	private UnitInventory myInventory;
@@ -44,7 +38,11 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 	private int queuedGas;
 	private int queuedMinerals;
 		
+	private boolean started;
 	private boolean done;
+	
+	private int estimatedMining;
+	private int estimatedGas;
 	
 	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects) {
 		
@@ -67,14 +65,60 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 		this.builder = builder;
 		
 		this.done = false;
+		this.started = false;
 		this.building = null;
 		this.queuedGas = this.constructionType.getGasPrice();
 		this.queuedMinerals = this.constructionType.getMineralPrice();
+		if (this.constructionSite != null) {
+			
+			if (this.builder != null) {
+				
+				estimateMining(this.builder);
+			} else {
+				
+				SCV tmpBuilder = myInventory.getAvailableWorkers().min(
+						(u1, u2) -> Integer.compare(mapAnalyzer.getGroundDistance(u1.getTilePosition(), constructionSite), 
+													mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite))).orElse(null);
+				estimateMining(tmpBuilder);
+			}
+		}
+	}
+	
+	private void estimateMining(SCV builder) {
+		
+		double distance = this.mapAnalyzer.getGroundDistance(builder.getTilePosition(), constructionSite);
+		double travelTimetoConstructionSite = distance / Constants.AVERAGE_SCV_SPEED;
+		this.estimatedMining = (int)PPF2.calculateEstimatedMining((int)travelTimetoConstructionSite, (int)this.myInventory.getAvailableWorkers().count() - 1);
+		this.estimatedGas = (int)(this.myInventory.getRefineries().stream().mapToDouble(r -> r.getMiningRate()).sum() * travelTimetoConstructionSite);
+		
 	}
 	
 	public void onFrame(Message message) {
 		
-		this.sendOrInterrupt(message);
+		if (constructionSite == null) {
+		
+			SCV tmpBuilder = myInventory.getAvailableWorkers().max((u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints())).orElse(null);
+			
+			findConstructionSite(tmpBuilder);
+			estimateMining(tmpBuilder);
+		}
+	
+		if (!started)
+			System.out.println(constructionType + ": " + (message.getMinerals() + estimatedMining) + " - " + (message.getGas() + estimatedGas));
+		if (!started
+				&& (message.getMinerals() + estimatedMining >= this.constructionType.getMineralPrice() && message.getGas() + estimatedGas >= this.constructionType.getGasPrice())) {
+			
+			if (this.builder == null) {
+				
+				this.builder = myInventory.getAvailableWorkers().min(
+						(u1, u2) -> Integer.compare(mapAnalyzer.getGroundDistance(u1.getTilePosition(), constructionSite), 
+													mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite))).orElse(null);
+			}
+			
+			logger.trace("estimated resources on arrival meets requirements. Sending {} to build {}.", this.builder, this.constructionType);
+			this.builder.construct(constructionSite, constructionType);
+			this.started = true;
+		}
 	}
 
 	public void updateConstructionSite(TilePosition newSite) {
@@ -87,37 +131,10 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 		}
 	}
 	
-	private void findBuilder() throws InterruptedException, SuspendExecution { 
-		
-		while(this.builder == null && !done) {
-			
-			/* no construction site yet: take strongest worker */
-			if (this.constructionSite == null) {
-				
-				this.builder = myInventory.getAvailableWorkers().max((u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints())).orElse(null);
-				
-			/* construction site defined: take closest worker */
-			} else {
-				
-				this.builder = myInventory.getAvailableWorkers().min(
-						(u1, u2) -> Integer.compare(mapAnalyzer.getGroundDistance(u1.getTilePosition(), constructionSite), 
-													mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite))).orElse(null);
-			}
-			
-			if (this.builder == null) {
-				
-				receive();
-			} else {
-				
-				logger.debug("{}: found builder {} and removed from available workers.", this.interactionHandler.getFrameCount(), this.builder);
-			}
-		}
-	}
-	
-	private void findConstructionSite() { 
+	private void findConstructionSite(SCV builder) { 
 		
 		// TODO the OR condition makes it less robust: CCs can only be built on base location tile positions.
-		// better: attempt to free the construction site. if stil not successful, find a spot nearby.
+		// better: attempt to free the construction site. if still not successful, find a spot nearby.
 		if (this.constructionSite == null || this.constructionType == ConstructionType.Terran_Command_Center) {
 			
 			this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects);
@@ -125,41 +142,20 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 			
 			this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects, this.constructionSite);
 		}
-		logger.trace("found site construction site at {}.", this.constructionSite);
+		logger.trace("found construction site at {} for {}.", this.constructionSite, this.constructionType);
 	}
 	
-	private void waitForCompletion() throws InterruptedException, SuspendExecution {
-		
-		boolean completed = false;
-		
-		while (!done && !completed) {
-			
-			Message message = receive();
-			completed = message.isBuildingCompleted();
-		}
-	}
-	
-	@Override
-	protected Void doRun() throws InterruptedException, SuspendExecution {
-		
-		logger.trace("{}: spawned {}.", this.interactionHandler.getFrameCount(), this);
-		
-		findBuilder();
-		findConstructionSite();
-		this.builder.construct(constructionSite, constructionType);
-		waitForCompletion();
-		logger.trace("completed.");
-		
-		logger.trace("{}: finished project for {}.", this.interactionHandler.getFrameCount(), this.building);
-		return null;
-	}
-	
-	public boolean collidesWithConstruction(TilePosition position) {
+	public boolean collidesWithConstruction(TilePosition position, UnitType unitType) {
 		
 		if (this.constructionSite != null) {
 			
-			if (this.constructionSite.getX() + this.constructionType.tileWidth() > position.getX() &&  this.constructionSite.getX() < position.getX() + this.constructionType.tileWidth()
-					&& this.constructionSite.getY() + this.constructionType.tileHeight() > position.getY() && this.constructionSite.getY() < position.getY() + this.constructionType.tileHeight()) {
+			if (this.constructionSite.getX() + this.constructionType.tileWidth() < position.getX() ||  this.constructionSite.getX() > position.getX() + unitType.tileWidth()) {
+				
+				return false;
+			} else if (this.constructionSite.getY() + this.constructionType.tileHeight() < position.getY() || this.constructionSite.getY() > position.getY() + unitType.tileHeight()) {
+				
+				return false;
+			} else {
 				
 				return true;
 			}
@@ -212,17 +208,15 @@ public class ConstructionProject extends BasicActor<Message, Void> implements Pr
 		}
 	}
 	
-	public void stop() throws ExecutionException, InterruptedException {
+	public void completed() {
 		
-		logger.debug("shutting down {}...", this);
 		this.done = true;
+		this.builder.gatherMinerals();
+	}
+	
+	public boolean isDone() {
 		
-		Strand.unpark(this.getStrand());
-		this.sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
-		Strand.unpark(this.getStrand());
-		
-		this.join();
-		logger.debug("done.");
+		return this.done;
 	}
 
 // TODO

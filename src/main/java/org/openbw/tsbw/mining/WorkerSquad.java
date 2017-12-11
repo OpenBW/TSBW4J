@@ -10,7 +10,6 @@ import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.unit.Mechanical;
 import org.openbw.bwapi4j.unit.MobileUnit;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 

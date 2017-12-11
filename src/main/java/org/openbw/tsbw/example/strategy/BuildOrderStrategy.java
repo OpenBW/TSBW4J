@@ -1,6 +1,7 @@
 package org.openbw.tsbw.example.strategy;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -68,10 +69,10 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 			// if our refinery finished, add an additional workers to mine gas from it
 			if (building instanceof Refinery) {
 				
+				Iterator<SCV> iterator = myInventory.getAvailableWorkers().iterator();
 				for (int i = 0; i < 3; i++) {
-					SCV gasMiner = myInventory.getAvailableWorker();
-					if (gasMiner != null) {
-						gasMiner.gather((Refinery) building);
+					if (iterator.hasNext()) {
+						iterator.next().gather((Refinery) building);
 					}
 				}
 			} else if (building instanceof Factory) {

@@ -5,9 +5,9 @@ import java.util.Queue;
 
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.UnitType;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
+import org.openbw.tsbw.unit.SCV;
 
 public class CommandCenterConstruction extends ConstructionProvider {
 
@@ -36,7 +36,7 @@ public class CommandCenterConstruction extends ConstructionProvider {
 		double distance = Double.MAX_VALUE;
 		for (TilePosition currentPosition : baseLocations) {
 			
-			if (mapAnalyzer.getBWMap().canBuildHere(currentPosition, super.getUnitType())  && !collidesWithConstruction(currentPosition, projects) 
+			if (mapAnalyzer.getBWMap().canBuildHere(currentPosition, super.getUnitType())  && !collidesWithConstruction(currentPosition, this.unitType, projects) 
 					&& !this.startLocation.equals(currentPosition)) {
 				
 				double currentDistance = mapAnalyzer.getGroundDistance(mainPosition, currentPosition);

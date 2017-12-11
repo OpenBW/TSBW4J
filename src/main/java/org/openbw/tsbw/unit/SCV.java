@@ -4,10 +4,6 @@ import org.openbw.bwapi4j.TilePosition;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.Subscriber;
 import org.openbw.tsbw.building.ConstructionType;
-import org.openbw.tsbw.micro.BuildMessage;
-import org.openbw.tsbw.micro.FrameUpdate;
-import org.openbw.tsbw.micro.MineGasMessage;
-import org.openbw.tsbw.micro.MineMineralsMessage;
 
 public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<FrameUpdate> {
 
@@ -23,6 +19,11 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 		this.workerActor.setSCV(this);
 	}
 
+	public void scout() {
+		
+		this.workerActor.sendOrInterrupt(new ScoutMessage());
+	}
+	
 	public void gatherMinerals() {
 		
 		gather(this.mineralPatches.first());
@@ -30,12 +31,14 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 	
 	public void gather(MineralPatch mineralPatch) {
 		
-		this.workerActor.sendOrInterrupt(new MineMineralsMessage(mineralPatch));
+		mineralPatch.addScv();
+		this.workerActor.sendOrInterrupt(new GatherMineralsMessage(mineralPatch));
 	}
 	
 	public void gather(Refinery refinery) {
 		
-		this.workerActor.sendOrInterrupt(new MineGasMessage(refinery));
+		this.workerActor.setAvailable(false);
+		this.workerActor.sendOrInterrupt(new GatherGasMessage(refinery));
 	}
 	
 	public void gatherGas() {
@@ -45,7 +48,7 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 	
 	public void construct(TilePosition constructionSite, ConstructionType type) {
 		
-		System.out.println("sending scv " + this + " to build " + type + " at " + constructionSite + " now.");
+		this.workerActor.setAvailable(false);
 		this.workerActor.sendOrInterrupt(new BuildMessage(constructionSite, type));
 	}
 	

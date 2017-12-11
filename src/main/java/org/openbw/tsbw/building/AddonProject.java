@@ -83,12 +83,17 @@ abstract class AddonProject implements Project {
 		}
 	}
 	
-	public boolean collidesWithConstruction(TilePosition position) {
+	public boolean collidesWithConstruction(TilePosition position, UnitType unitType) {
 		
 		if (this.constructionSite != null) {
 			
-			if (this.constructionSite.getX() + this.addonType.tileWidth() > position.getX() &&  this.constructionSite.getX() < position.getX() + this.addonType.tileWidth()
-					&& this.constructionSite.getY() + this.addonType.tileHeight() > position.getY() && this.constructionSite.getY() < position.getY() + this.addonType.tileHeight()) {
+			if (this.constructionSite.getX() + this.addonType.tileWidth() < position.getX() ||  this.constructionSite.getX() > position.getX() + unitType.tileWidth()) {
+				
+				return false;
+			} else if (this.constructionSite.getY() + this.addonType.tileHeight() < position.getY() || this.constructionSite.getY() > position.getY() + unitType.tileHeight()) {
+				
+				return false;
+			} else {
 				
 				return true;
 			}
@@ -99,6 +104,10 @@ abstract class AddonProject implements Project {
 	public boolean isDone() {
 		
 		return this.addon != null && this.addon.isCompleted();
+	}
+	
+	public void completed() {
+		
 	}
 	
 	public void drawConstructionSite(MapDrawer mapDrawer) {

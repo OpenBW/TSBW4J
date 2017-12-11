@@ -2,6 +2,7 @@ package org.openbw.tsbw.building;
 
 import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.Building;
 
 public interface Project {
@@ -16,9 +17,11 @@ public interface Project {
 	
 	public boolean isConstructing(Building building);
 	
-	public boolean collidesWithConstruction(TilePosition position);
+	public boolean collidesWithConstruction(TilePosition position, UnitType unitType);
 	
 	public boolean isDone();
+	
+	public void completed();
 	
 	public void drawConstructionSite(MapDrawer mapDrawer);
 	

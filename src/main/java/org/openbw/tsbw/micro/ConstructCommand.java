@@ -1,8 +1,8 @@
 package org.openbw.tsbw.micro;
 
 import org.openbw.bwapi4j.TilePosition;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.building.ConstructionType;
+import org.openbw.tsbw.unit.SCV;
 
 public class ConstructCommand implements Command {
 

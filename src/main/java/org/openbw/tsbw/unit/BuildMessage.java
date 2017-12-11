@@ -1,9 +1,9 @@
-package org.openbw.tsbw.micro;
+package org.openbw.tsbw.unit;
 
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.tsbw.building.ConstructionType;
 
-public class BuildMessage extends Message {
+class BuildMessage extends Message {
 
 	private TilePosition constructionSite;
 	private ConstructionType type;

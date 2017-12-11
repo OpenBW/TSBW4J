@@ -5,13 +5,15 @@ import java.util.Queue;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.CommandCenter;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
+import org.openbw.tsbw.unit.SCV;
 
 public class ConstructionProvider {
 
-	private UnitType unitType;
+	protected static final int MAX_SEARCH_RADIUS = 100; // to prevent an endless loop in case no build tile can be found
+	
+	protected UnitType unitType;
 	
 	public ConstructionProvider(UnitType unitType) {
 		
@@ -19,6 +21,7 @@ public class ConstructionProvider {
 	}
 	
 	public UnitType getUnitType() {
+		
 		return this.unitType;
 	}
 
@@ -33,19 +36,20 @@ public class ConstructionProvider {
 		
 		TilePosition nextPosition = aroundHere;
 		
-		for (int i = 0; true; i++) {
+		for (int i = 0; i < MAX_SEARCH_RADIUS; i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(aroundHere.getX() + x, aroundHere.getY() + y);
 				if (mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) 
-						&& !collidesWithConstruction(nextPosition, projects) && !collidesWithMiningArea(myInventory, nextPosition)) {
+						&& !collidesWithConstruction(nextPosition, this.unitType, projects) && !collidesWithMiningArea(myInventory, nextPosition)) {
 					
 					return nextPosition;
 				}
 			}
 		}
+		return null;
 	}
 	
 	protected boolean collidesWithMiningArea(UnitInventory myInventory, TilePosition position) {
@@ -59,11 +63,11 @@ public class ConstructionProvider {
 		return false;
 	}
 	
-	protected boolean collidesWithConstruction(TilePosition position, Queue<Project> projects) {
+	protected boolean collidesWithConstruction(TilePosition position, UnitType unitType, Queue<Project> projects) {
 		
 		for (Project project : projects) {
 			
-			if (project.collidesWithConstruction(position)) {
+			if (project.collidesWithConstruction(position, unitType)) {
 				return true;
 			}
 		}

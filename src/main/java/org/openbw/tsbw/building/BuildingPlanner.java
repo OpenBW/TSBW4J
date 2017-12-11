@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,8 +32,6 @@ public class BuildingPlanner {
 	private UnitInventory myInventory;
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
-	
-	private boolean done;
 	
 	private Queue<Project> projects;
 	
@@ -76,9 +73,7 @@ public class BuildingPlanner {
 				logger.debug("building {} completed.", building);
 			}
 			
-			projects.stream().filter(p -> p instanceof ConstructionProject && p.isConstructing(building)).findFirst().ifPresent(p -> {
-				((ConstructionProject)p).sendOrInterrupt(new Message(interactionHandler.getFrameCount(), true));
-			});
+			projects.stream().filter(p -> p instanceof ConstructionProject && p.isConstructing(building)).findFirst().ifPresent(p -> p.completed());
 		}
 
 		@Override
@@ -104,7 +99,6 @@ public class BuildingPlanner {
 	
 	public void initialize() {
 		
-		this.done = false;
 		this.projects.clear();
 		this.myInventory.getConstructions().addListener(constructionListener);
 		this.myInventory.getBuildings().addListener(buildingListener);
@@ -115,9 +109,6 @@ public class BuildingPlanner {
 		logger.debug("Queueing {}...", constructionType);
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite, worker);
 		this.projects.add(constructionProject);
-		if (!done) {
-			constructionProject.spawn();
-		}
 		return constructionProject;
 	}
 
@@ -126,9 +117,6 @@ public class BuildingPlanner {
 		logger.debug("Queueing {}...", constructionType);
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite);
 		this.projects.add(constructionProject);
-		if (!done) {
-			constructionProject.spawn();
-		}
 		return constructionProject;
 	}
 	
@@ -137,9 +125,6 @@ public class BuildingPlanner {
 		logger.debug("Queueing {}...", constructionType);
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects);
 		this.projects.add(constructionProject);
-		if (!done) {
-			constructionProject.spawn();
-		}
 		return constructionProject;
 	}
 	
@@ -204,21 +189,5 @@ public class BuildingPlanner {
 		}
 		
 		completed.stream().forEach(p -> this.projects.remove(p));
-	}
-	
-	public void stop() {
-		
-		logger.debug("shutting down {} construction projects...", this.projects.size());
-		this.done = true;
-		
-		this.projects.stream().filter(p -> p instanceof ConstructionProject).forEach(p -> {
-			try {
-				((ConstructionProject)p).stop();
-			} catch (ExecutionException | InterruptedException e) {
-				logger.error("Error stopping project {}.", p, e);
-				e.printStackTrace();
-			}
-		});
-		logger.debug("done.");
 	}
 }

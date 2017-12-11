@@ -31,9 +31,9 @@ public class ExampleBot extends Bot {
 		this.strategyFactory.register("buildorder", new BuildOrderStrategy());
 		
 		// try changing the Type from "dummy" to "buildorder" to use a different strategy
-		this.gameStrategy = strategyFactory.getStrategy("dummy");
+		this.gameStrategy = strategyFactory.getStrategy("buildorder");
 		
 		this.interactionHandler.enableUserInput();
-		this.interactionHandler.setLocalSpeed(40);
+		this.interactionHandler.setLocalSpeed(20);
 	}
 }

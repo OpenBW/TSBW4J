@@ -4,9 +4,9 @@ import java.util.Queue;
 
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.UnitType;
-import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
+import org.openbw.tsbw.unit.SCV;
 
 import bwta.Region;
 
@@ -40,7 +40,7 @@ public class FactoryConstruction extends ConstructionProvider {
 		TilePosition nextPosition = aroundHere;
 		TilePosition extensionPosition = new TilePosition(nextPosition.getX() + 4, nextPosition.getY() + 1);
 		
-		for (int i = 0; true; i++) {
+		for (int i = 0; i < MAX_SEARCH_RADIUS; i++) {
 			for (int j = 1; j <= i; j++) {
 				
 				int x = i/2 * ((i%2 * 2) - 1);
@@ -49,11 +49,12 @@ public class FactoryConstruction extends ConstructionProvider {
 				extensionPosition = new TilePosition(nextPosition.getX() + 3, nextPosition.getY() + 1);
 				
 				if (mapAnalyzer.canBuildHere(nextPosition, super.getUnitType(), builder) && mapAnalyzer.canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, builder)
-						&& !collidesWithConstruction(nextPosition, projects) && !collidesWithMiningArea(unitInventory, nextPosition)) {
+						&& !collidesWithConstruction(nextPosition, this.unitType, projects) && !collidesWithMiningArea(unitInventory, nextPosition)) {
 					
 					return nextPosition;
 				}
 			}
 		}
+		return null;
 	}
 }

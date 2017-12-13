@@ -2,7 +2,7 @@ package org.openbw.tsbw.unit;
 
 public class Refinery extends org.openbw.bwapi4j.unit.Refinery {
 
-	private static double MINING_RATE = 0.072;
+	public static double MINING_RATE_PER_SCV = 0.072;
 	
 	private int assignedScvs;
 	
@@ -14,7 +14,7 @@ public class Refinery extends org.openbw.bwapi4j.unit.Refinery {
 
 	public double getMiningRate() {
 	
-		return this.assignedScvs * MINING_RATE;
+		return this.assignedScvs * MINING_RATE_PER_SCV;
 	}
 	
 	public void resetScvCount() {

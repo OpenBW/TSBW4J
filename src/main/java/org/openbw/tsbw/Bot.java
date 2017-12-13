@@ -136,6 +136,7 @@ public abstract class Bot {
         ConstructionType.Terran_Supply_Depot.setConstructionProvider(new SupplyDepotConstruction());
         ConstructionType.Terran_Barracks.setConstructionProvider(new BarracksConstruction());
         ConstructionType.Terran_Refinery.setConstructionProvider(new RefineryConstruction());
+        ConstructionType.Terran_Starport.setConstructionProvider(new FactoryConstruction()); // on purpose
         
 		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.mapAnalyzer, this.interactionHandler);
 		this.buildingPlanner.initialize();
@@ -188,7 +189,7 @@ public abstract class Bot {
 		if (scoutingEnabled) {
 			scoutingStrategy.run(frameCount);
 		}
-		
+
 		/*
 		 * Do every 5 frames (just for performance reasons)
 		 */
@@ -280,8 +281,10 @@ public abstract class Bot {
 				
 				UnitInventory inventory = this.unitInventories.get(playerUnit.getPlayer());
 				if (inventory == null) {
+					
 					logger.error("no inventory found for player {} (unit {}).", playerUnit.getPlayer(), playerUnit);
 				} else {
+					
 					addToInventory(unit, inventory, interactionHandler.getFrameCount());
 				}
 			}

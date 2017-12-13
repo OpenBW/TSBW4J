@@ -46,10 +46,15 @@ public class FactoryConstruction extends ConstructionProvider {
 				int x = i/2 * ((i%2 * 2) - 1);
 				int y = j/2 * ((j%2 * 2) - 1);
 				nextPosition = new TilePosition(aroundHere.getX() + x, aroundHere.getY() + y);
-				extensionPosition = new TilePosition(nextPosition.getX() + 3, nextPosition.getY() + 1);
+				extensionPosition = new TilePosition(
+						nextPosition.getX() + this.unitType.tileWidth(),
+						nextPosition.getY() + this.unitType.tileHeight() - UnitType.Terran_Machine_Shop.tileHeight());
 				
-				if (mapAnalyzer.canBuildHere(nextPosition, super.getUnitType(), builder) && mapAnalyzer.canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, builder)
-						&& !collidesWithConstruction(nextPosition, this.unitType, projects) && !collidesWithMiningArea(unitInventory, nextPosition)) {
+				if (mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) 
+						&& mapAnalyzer.canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, builder)
+						&& !collidesWithConstruction(nextPosition, this.unitType, projects) 
+						&& !collidesWithConstruction(extensionPosition, UnitType.Terran_Machine_Shop, projects) 
+						&& !collidesWithMiningArea(unitInventory, nextPosition)) {
 					
 					return nextPosition;
 				}

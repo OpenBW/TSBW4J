@@ -103,8 +103,6 @@ public class ConstructionProject implements Project {
 			estimateMining(tmpBuilder);
 		}
 	
-		if (!started)
-			System.out.println(constructionType + ": " + (message.getMinerals() + estimatedMining) + " - " + (message.getGas() + estimatedGas));
 		if (!started
 				&& (message.getMinerals() + estimatedMining >= this.constructionType.getMineralPrice() && message.getGas() + estimatedGas >= this.constructionType.getGasPrice())) {
 			

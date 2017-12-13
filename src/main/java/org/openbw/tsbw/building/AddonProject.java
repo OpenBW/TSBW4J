@@ -85,20 +85,16 @@ abstract class AddonProject implements Project {
 	
 	public boolean collidesWithConstruction(TilePosition position, UnitType unitType) {
 		
-		if (this.constructionSite != null) {
+		if (this.constructionSite.getX() + this.addonType.tileWidth() < position.getX() ||  this.constructionSite.getX() > position.getX() + unitType.tileWidth()) {
 			
-			if (this.constructionSite.getX() + this.addonType.tileWidth() < position.getX() ||  this.constructionSite.getX() > position.getX() + unitType.tileWidth()) {
-				
-				return false;
-			} else if (this.constructionSite.getY() + this.addonType.tileHeight() < position.getY() || this.constructionSite.getY() > position.getY() + unitType.tileHeight()) {
-				
-				return false;
-			} else {
-				
-				return true;
-			}
+			return false;
+		} else if (this.constructionSite.getY() + this.addonType.tileHeight() < position.getY() || this.constructionSite.getY() > position.getY() + unitType.tileHeight()) {
+			
+			return false;
+		} else {
+			
+			return true;
 		}
-		return false;
 	}
 	
 	public boolean isDone() {
@@ -112,11 +108,9 @@ abstract class AddonProject implements Project {
 	
 	public void drawConstructionSite(MapDrawer mapDrawer) {
 		
-		if (this.constructionSite != null) {
-			mapDrawer.drawBoxMap(this.constructionSite.getX() * 32, this.constructionSite.getY() * 32, 
-					this.constructionSite.getX() * 32 + this.addonType.tileWidth() * 32, 
-					this.constructionSite.getY() * 32 + this.addonType.tileHeight() * 32, Color.WHITE);
-		}
+		mapDrawer.drawBoxMap(this.constructionSite.getX() * 32, this.constructionSite.getY() * 32, 
+				this.constructionSite.getX() * 32 + this.addonType.tileWidth() * 32, 
+				this.constructionSite.getY() * 32 + this.addonType.tileHeight() * 32, Color.WHITE);
 	}
 	
 	public boolean isOfType(ConstructionType constructionType) {

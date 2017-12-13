@@ -334,6 +334,9 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				
 //				myPatch.removeScv();
 				myPatch = ((GatherMineralsMessage) message).getMineralPatch();
+				if (!myPatch.isVisible()) {
+					moveTo(myPatch.getPosition());
+				}
 				success = false;
 			} else if (message instanceof BuildMessage) {
 				

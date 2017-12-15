@@ -17,6 +17,7 @@ import org.openbw.tsbw.micro.Command;
 import org.openbw.tsbw.micro.ConstructCommand;
 import org.openbw.tsbw.micro.GatherGasCommand;
 import org.openbw.tsbw.micro.GatherMineralsCommand;
+import org.openbw.tsbw.micro.HaltConstructionCommand;
 import org.openbw.tsbw.micro.MoveCommand;
 import org.openbw.tsbw.micro.ScoutCommand;
 
@@ -87,7 +88,6 @@ public class WorkerActor extends BasicActor<Message, Void> {
 	void onFrame(FrameUpdate frameUpdate) {
 		
 		this.frame = frameUpdate.getFrame();
-		
 		if (frame >= this.wakeUp) {
 			
 			if (this.nextCommand != null) {
@@ -217,7 +217,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				if (this.scv.getHitPoints() < 25) {
 					
 					// TODO call for help
-					
+					success = execute(new HaltConstructionCommand(this.scv));
 				}
 			} else if (message instanceof GatherMineralsMessage) {
 					
@@ -239,7 +239,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		logger.trace("frame {}: {} gathering from {}.", this.frame, this.scv, refinery);
 		this.available = false;
 		
-		this.nextCommand = new GatherGasCommand(this.scv, refinery);
+		execute(new GatherGasCommand(this.scv, refinery));
 		
 		boolean done = false;
 		while (!done && this.alive && refinery.exists()) {
@@ -248,10 +248,9 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			if (message instanceof FrameUpdate) {
 				
 				update((FrameUpdate)message);
-				
-				if (!this.attackingEnemies.isEmpty()) {
+				if (!this.scv.isGatheringGas()) {
 					
-					defending();
+					execute(new GatherGasCommand(this.scv, refinery));
 				}
 			} else if (message instanceof BuildMessage) {
 				
@@ -303,6 +302,8 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		MineralPatch myPatch = mineralPatch;
 		this.gathering = true;
 		if (!myPatch.isVisible()) {
+			
+			logger.trace("frame {}: {} target {} is not visible. Moving there first.", this.frame, this.scv, mineralPatch);
 			moveTo(myPatch.getPosition());
 		}
 		boolean success = false;

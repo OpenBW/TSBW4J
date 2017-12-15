@@ -76,10 +76,19 @@ public abstract class Bot {
 		
 		logger.trace("executing run().");
 		this.bw = new BW(this.eventListener);
+		
 		this.workerBoard = new WorkerBoard();
-		this.bw.setUnitFactory(new UnitFactory(this.bw, workerBoard));
+		this.interactionHandler = bw.getInteractionHandler();
+        this.mapDrawer = bw.getMapDrawer();
+		this.bw.setUnitFactory(getUnitFactory());
+		
 		logger.debug("starting game...");
 		bw.startGame();
+	}
+	
+	protected UnitFactory getUnitFactory() {
+		
+		return new UnitFactory(workerBoard);
 	}
 	
 	public Bot(ScoutingFactory scoutingFactory) {
@@ -109,9 +118,7 @@ public abstract class Bot {
 		
 		this.subscribers.clear();
 		
-		this.interactionHandler = bw.getInteractionHandler();
-        this.mapDrawer = bw.getMapDrawer();
-        this.mapAnalyzer = new MapAnalyzer(bw, new BWTA());
+		this.mapAnalyzer = new MapAnalyzer(bw, new BWTA());
         
 		this.gameStarted = false;
 		
@@ -176,8 +183,17 @@ public abstract class Bot {
 		int frameCount = interactionHandler.getFrameCount();
 //		long milliSeconds = System.currentTimeMillis();
 		
-		if (!gameStarted || frameCount < 1) {
-			logger.info("frame 0 starting at {}.", new Date());
+		// Once the first frame has been played we truly start the game (units will be initialized)
+		if (!gameStarted && frameCount > 0) {
+			
+			logger.info("frame 1 starting at {}.", new Date());
+			
+			UnitInventory myInventory = this.unitInventories.get(this.player1);
+			this.resourceGatherer.initialize(myInventory.getWorkers(), myInventory.getCommandCenters(), myInventory.getMineralPatches());
+			myInventory.getAvailableWorkers().forEach(w -> w.gatherMinerals());
+			gameStrategy.start(player1.minerals(), player1.gas());
+			gameStarted = true;
+		} else if (frameCount == 0) {
 			return;
 		}
 		
@@ -390,14 +406,5 @@ public abstract class Bot {
         }
         
         addToInventory(unit, inventory, interactionHandler.getFrameCount());
-		
-		// Once the initial 4 workers and the command centers have fired their triggers we truly start the game
-		if (!gameStarted && inventory.getWorkers().size() == 4 && !inventory.getCommandCenters().isEmpty()) {
-			
-			this.resourceGatherer.initialize(inventory.getWorkers(), inventory.getCommandCenters(), inventory.getMineralPatches());
-			inventory.getAvailableWorkers().forEach(w -> w.gatherMinerals());
-			gameStrategy.start(player1.minerals(), player1.gas());
-			gameStarted = true;
-		}
 	}
 }

@@ -11,12 +11,12 @@ import org.openbw.bwapi4j.unit.Barracks;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.bwapi4j.unit.Factory;
+import org.openbw.bwapi4j.unit.GasMiningFacility;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.PlayerUnit;
 import org.openbw.bwapi4j.unit.Starport;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.unit.MineralPatch;
-import org.openbw.tsbw.unit.Refinery;
 import org.openbw.tsbw.unit.SCV;
 import org.openbw.tsbw.unit.VespeneGeyser;
 
@@ -27,7 +27,7 @@ public class UnitInventory {
 	private Group<MineralPatch> mineralPatches;
 	private Group<VespeneGeyser> vespeneGeysers;
 	private Group<CommandCenter> commandCenters;
-	private Group<Refinery> refineries;
+	private Group<GasMiningFacility> refineries;
 	private Group<Barracks> barracks;
 	private Group<Factory> factories;
 	private Group<Starport> starports;
@@ -112,9 +112,9 @@ public class UnitInventory {
 					if (building instanceof CommandCenter) {
 						
 						this.commandCenters.add((CommandCenter)building);
-					} else if (building instanceof Refinery) {
+					} else if (building instanceof GasMiningFacility) {
 											
-						this.refineries.add((Refinery)building);
+						this.refineries.add((GasMiningFacility)building);
 					} else if (building instanceof Barracks) {
 						
 						this.barracks.add((Barracks)building);
@@ -179,9 +179,9 @@ public class UnitInventory {
 					if (building instanceof CommandCenter) {
 						
 						this.commandCenters.destroy((CommandCenter)building);
-					} else if (building instanceof Refinery) {
+					} else if (building instanceof GasMiningFacility) {
 											
-						this.refineries.destroy((Refinery)building);
+						this.refineries.destroy((GasMiningFacility)building);
 					} else if (building instanceof Barracks) {
 						
 						this.barracks.destroy((Barracks)building);
@@ -228,7 +228,7 @@ public class UnitInventory {
 		return this.commandCenters;
 	}
 
-	public Group<Refinery> getRefineries() {
+	public Group<GasMiningFacility> getRefineries() {
 		return this.refineries;
 	}
 	
@@ -306,11 +306,11 @@ public class UnitInventory {
 	
 	public int getObservedMineralsSpent() {
 		
-		return this.observedMineralsSpent;
+		return this.observedMineralsSpent + this.constructions.stream().mapToInt(b -> b.getMineralPrice()).sum();
 	}
 	
 	public int getObservedGasSpent() {
 		
-		return this.observedGasSpent;
+		return this.observedGasSpent + this.constructions.stream().mapToInt(b -> b.getGasPrice()).sum();
 	}
 }

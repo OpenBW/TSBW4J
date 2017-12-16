@@ -51,6 +51,7 @@ public class FactoryConstruction extends ConstructionProvider {
 						nextPosition.getY() + this.unitType.tileHeight() - UnitType.Terran_Machine_Shop.tileHeight());
 				
 				if (mapAnalyzer.canBuildHere(nextPosition, this.unitType, builder) 
+						&& mapAnalyzer.canBuildHere(new TilePosition(nextPosition.getX(), nextPosition.getY() + 1), this.unitType, builder)
 						&& mapAnalyzer.canBuildHere(extensionPosition, UnitType.Terran_Machine_Shop, builder)
 						&& !collidesWithConstruction(nextPosition, this.unitType, projects) 
 						&& !collidesWithConstruction(extensionPosition, UnitType.Terran_Machine_Shop, projects) 

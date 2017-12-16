@@ -16,7 +16,9 @@ import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.Player;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.type.Key;
+import org.openbw.bwapi4j.type.Race;
 import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.GasMiningFacility;
 import org.openbw.bwapi4j.unit.PlayerUnit;
 import org.openbw.bwapi4j.unit.Unit;
 import org.openbw.tsbw.building.BarracksConstruction;
@@ -356,13 +358,14 @@ public abstract class Bot {
 	}
 	
 	public void onUnitMorph(Unit unit) {
-		// do nothing
+		
+		
 	}
 	
 	/* default */ final void internalOnUnitMorph(Unit unit) {
 		
-		if (unit instanceof Refinery) {
-			UnitInventory inventory = unitInventories.get(((Refinery) unit).getPlayer());
+		if (unit instanceof GasMiningFacility) {
+			UnitInventory inventory = unitInventories.get(((GasMiningFacility) unit).getPlayer());
 			inventory.getVespeneGeysers().stream().filter(r -> r.getId() == unit.getId()).findFirst().ifPresent(c -> inventory.getVespeneGeysers().remove(c));
 			onUnitCreate(unit);
 //		} else if (unit instanceof VespeneGeyser) {
@@ -370,6 +373,13 @@ public abstract class Bot {
 //			inventory.getRefineries().stream().filter(r -> r.getId() == unit.getId()).findFirst().ifPresent(c -> onUnitDestroy(c));
 //			onUnitComplete(unit);
 		} else {
+			
+			if (unit instanceof Building && unit.getInitialType().getRace() == Race.Zerg) {
+				
+				UnitInventory inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
+				inventory.getAllUnits().stream().filter(u -> u.getId() == unit.getId()).findAny().ifPresent(u -> inventory.unregister(unit));
+				inventory.register(unit);
+			}
 			onUnitMorph(unit);
 		}
 	}

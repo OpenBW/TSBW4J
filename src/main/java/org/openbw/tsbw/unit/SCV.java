@@ -1,6 +1,7 @@
 package org.openbw.tsbw.unit;
 
 import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.unit.GasMiningFacility;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.Subscriber;
 import org.openbw.tsbw.building.ConstructionType;
@@ -10,7 +11,7 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 	private WorkerActor workerActor;
 	
 	private Group<MineralPatch> mineralPatches;
-	private Group<Refinery> refineries;
+	private Group<GasMiningFacility> refineries;
 	
 	protected SCV(int id, WorkerActor workerActor) {
 		
@@ -44,7 +45,7 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 	
 	public void gatherGas() {
 		
-		gather(this.refineries.first());
+		gather((Refinery)this.refineries.first());
 	}
 	
 	public void construct(TilePosition constructionSite, ConstructionType type) {
@@ -63,7 +64,7 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 		return this.workerActor.isGathering();
 	}
 
-	public void initialize(Group<MineralPatch> mineralPatches, Group<Refinery> refineries) {
+	public void initialize(Group<MineralPatch> mineralPatches, Group<GasMiningFacility> refineries) {
 		
 		this.mineralPatches = mineralPatches;
 		this.refineries = refineries;

@@ -180,9 +180,10 @@ public class WorkerActor extends BasicActor<Message, Void> {
 
 		this.available = false;
 		
-		if (this.scv.getDistance(constructionSite.toPosition()) > this.scv.getSightRange() - 64) {
+		Position constructionSiteCenter = new Position(constructionSite.getX() * 32 + 32, constructionSite.getY() * 32 + 32); 
+		if (this.scv.getDistance(constructionSiteCenter) > this.scv.getSightRange() - 64) {
 			
-			moveTo(new Position(constructionSite.getX() * 32 + 32, constructionSite.getY() * 32 + 32));
+			moveTo(constructionSiteCenter);
 		}
 		logger.trace("frame {}: {} arrived at construction site at {}.", this.frame, this.scv, constructionSite);
 		
@@ -236,8 +237,8 @@ public class WorkerActor extends BasicActor<Message, Void> {
 	
 	protected void gathering(Refinery refinery) throws InterruptedException, SuspendExecution {
 		
-		logger.trace("frame {}: {} gathering from {}.", this.frame, this.scv, refinery);
 		this.available = false;
+		logger.trace("frame {}: {} gathering from {}.", this.frame, this.scv, refinery);
 		
 		execute(new GatherGasCommand(this.scv, refinery));
 		
@@ -248,10 +249,10 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			if (message instanceof FrameUpdate) {
 				
 				update((FrameUpdate)message);
-				if (!this.scv.isGatheringGas()) {
-					
-					execute(new GatherGasCommand(this.scv, refinery));
-				}
+//				if (!this.scv.isGatheringGas()) {
+//					
+//					execute(new GatherGasCommand(this.scv, refinery));
+//				}
 			} else if (message instanceof BuildMessage) {
 				
 				logger.warn("frame {}: {} received build request although I am gathering gas.", this.frame, this.scv);
@@ -260,10 +261,10 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				logger.warn("frame {}: {} received scout request although I am gathering gas.", this.frame, this.scv);
 			}
 			
-			done &= refinery.getResources() > 0;
 			this.alive &= this.scv.exists();
 		}
 		
+		logger.trace("frame {}: {} stopped gathering gas from {}.", this.frame, this.scv, refinery);
 		this.available = true;
 	}
 	
@@ -301,7 +302,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		
 		MineralPatch myPatch = mineralPatch;
 		this.gathering = true;
-		if (!myPatch.isVisible()) {
+		if (!myPatch.isVisible() || !myPatch.exists()) {
 			
 			logger.trace("frame {}: {} target {} is not visible. Moving there first.", this.frame, this.scv, mineralPatch);
 			moveTo(myPatch.getPosition());
@@ -335,7 +336,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				
 //				myPatch.removeScv();
 				myPatch = ((GatherMineralsMessage) message).getMineralPatch();
-				if (!myPatch.isVisible()) {
+				if (!myPatch.isVisible() || !myPatch.exists()) {
 					moveTo(myPatch.getPosition());
 				}
 				success = false;

@@ -14,6 +14,7 @@ import org.openbw.tsbw.Constants;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.analysis.PPF2;
+import org.openbw.tsbw.unit.Refinery;
 import org.openbw.tsbw.unit.SCV;
 
 //TODO the implementation is not robust yet. handle cases:
@@ -89,7 +90,8 @@ public class ConstructionProject implements Project {
 		double distance = this.mapAnalyzer.getGroundDistance(builder.getTilePosition(), constructionSite);
 		double travelTimetoConstructionSite = distance / Constants.AVERAGE_SCV_SPEED;
 		this.estimatedMining = (int)PPF2.calculateEstimatedMining((int)travelTimetoConstructionSite, (int)this.myInventory.getAvailableWorkers().count() - 1);
-		this.estimatedGas = (int)(this.myInventory.getRefineries().stream().mapToDouble(r -> r.getMiningRate()).sum() * travelTimetoConstructionSite);
+		this.estimatedGas = (int)(this.myInventory.getRefineries().stream()
+				.map(r -> (Refinery)r).mapToDouble(r -> r.getMiningRate()).sum() * travelTimetoConstructionSite);
 		
 	}
 	

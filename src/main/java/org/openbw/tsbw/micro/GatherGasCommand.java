@@ -28,7 +28,7 @@ public class GatherGasCommand implements Command {
 	@Override
 	public int getDelay() {
 		
-		return 3;
+		return 10;
 	}
 	
 	@Override

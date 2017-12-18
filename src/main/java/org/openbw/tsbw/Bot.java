@@ -35,7 +35,6 @@ import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
 import org.openbw.tsbw.unit.FrameUpdate;
 import org.openbw.tsbw.unit.MineralPatch;
-import org.openbw.tsbw.unit.Refinery;
 import org.openbw.tsbw.unit.SCV;
 import org.openbw.tsbw.unit.UnitFactory;
 import org.openbw.tsbw.unit.VespeneGeyser;
@@ -376,6 +375,7 @@ public abstract class Bot {
 			
 			if (unit instanceof Building && unit.getInitialType().getRace() == Race.Zerg) {
 				
+				logger.trace("zerg building {} morphed. Will add to unit inventory...", unit);
 				UnitInventory inventory = this.unitInventories.get(((PlayerUnit) unit).getPlayer());
 				inventory.getAllUnits().stream().filter(u -> u.getId() == unit.getId()).findAny().ifPresent(u -> inventory.unregister(unit));
 				inventory.register(unit);

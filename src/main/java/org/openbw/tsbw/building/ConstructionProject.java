@@ -74,12 +74,14 @@ public class ConstructionProject implements Project {
 			
 			if (this.builder != null) {
 				
+				findConstructionSite(this.builder);
 				estimateMining(this.builder);
 			} else {
 				
 				SCV tmpBuilder = myInventory.getAvailableWorkers().min(
 						(u1, u2) -> Integer.compare(mapAnalyzer.getGroundDistance(u1.getTilePosition(), constructionSite), 
 													mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite))).orElse(null);
+				findConstructionSite(tmpBuilder);
 				estimateMining(tmpBuilder);
 			}
 		}

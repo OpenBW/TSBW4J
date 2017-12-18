@@ -1,6 +1,8 @@
 package org.openbw.tsbw.unit;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -107,8 +109,6 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			}
 		}
 		this.sendOrInterrupt(frameUpdate);
-			
-		
 	}
 
 	private boolean execute(Command command) throws InterruptedException, SuspendExecution {
@@ -121,7 +121,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 	protected void scouting() throws InterruptedException, SuspendExecution {
 		
 		this.available = false;
-		execute(new ScoutCommand(this.scv, this.publicBoard.getUnitInventory()));
+		execute(new ScoutCommand(this.scv, this.publicBoard.getMyInventory()));
 		while(this.alive) {
 			
 			Message message = receive();
@@ -136,22 +136,57 @@ public class WorkerActor extends BasicActor<Message, Void> {
 	
 	protected void defending() throws InterruptedException, SuspendExecution {
 		
+		this.available = false;
 		logger.trace("frame {}: {} is defending.", frame, this.scv);
 		
-		this.nextCommand = new AttackUnitCommand(this.scv, this.attackingEnemies.get(0));
 		while (!this.attackingEnemies.isEmpty() && this.alive) {
 			
-			Message message = receive();
-			if (message instanceof FrameUpdate) {
+			MobileUnit enemyToAttack = null;
+			for (MobileUnit enemy : this.publicBoard.getAttackers().keySet()) {
 				
-				update((FrameUpdate)message);
-			} else if (message instanceof BuildMessage) {
+				Set<SCV> currentDefenders = this.publicBoard.getAttackers().get(enemy);
+				double combinedHitPoints = currentDefenders.stream().mapToInt(s -> s.getHitPoints()).sum();
 				
-				logger.warn("frame {}: {} received build request but am defending.", this.frame, this.scv);
+				if (combinedHitPoints * WeaponType.Fusion_Cutter.damageAmount() / WeaponType.Fusion_Cutter.damageCooldown() < 
+						enemy.getHitPoints() * enemy.getGroundWeapon().damageAmount() / enemy.getGroundWeapon().damageCooldown()) {
+					
+					enemyToAttack = enemy;
+					break;
+				}
+			}
+			if (enemyToAttack == null) {
+				
+				enemyToAttack = this.attackingEnemies.stream().filter(e -> e.getGroundWeapon() != WeaponType.None).min((e1, e2) -> Integer.compare(
+		        		e1.getHitPoints(), 
+		        		e2.getHitPoints())).get();
 			}
 			
-			this.alive &= this.scv.exists();
+			Set<SCV> currentDefenders = this.publicBoard.getAttackers().get(enemyToAttack);
+			if (currentDefenders == null) {
+				
+				currentDefenders = new HashSet<>();
+				this.publicBoard.getAttackers().put(enemyToAttack, currentDefenders);
+			}
+			currentDefenders.add(this.scv);
+			
+			this.nextCommand = new AttackUnitCommand(this.scv, enemyToAttack);
+			while (enemyToAttack.exists() && this.scv.getDistance(this.publicBoard.getMyInventory().getMain()) < 192 && this.alive) {
+				
+				Message message = receive();
+				if (message instanceof FrameUpdate) {
+					
+					update((FrameUpdate)message);
+				} else if (message instanceof BuildMessage) {
+					
+					logger.warn("frame {}: {} received build request but am defending.", this.frame, this.scv);
+				}
+				
+				this.alive &= this.scv.exists();
+			}
+			
+			currentDefenders.remove(this.scv);
 		}
+		this.available = true;
 	}
 	
 	protected void waitForResources(int requiredMinerals, int requiredGas) throws InterruptedException, SuspendExecution {
@@ -219,6 +254,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 					
 					// TODO call for help
 					success = execute(new HaltConstructionCommand(this.scv));
+					done = true;
 				}
 			} else if (message instanceof GatherMineralsMessage) {
 					
@@ -319,11 +355,14 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				if (!this.attackingEnemies.isEmpty()) {
 					
 					this.gathering = false;
+					myPatch.removeScv();
 					defending();
 					this.gathering = true;
 					success = false;
 				}
 				if (!success) {
+					
+					myPatch.addScv();
 					success = execute(new GatherMineralsCommand(this.scv, myPatch));
 					if (!success) {
 						logger.error("frame {}: gather command failed for {}.", this.frame, this.scv);
@@ -366,8 +405,14 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		this.gas = frameUpdate.getGas();
 		this.remainingLatencyFrames = frameUpdate.getRemainingLatencyFrames();
 		
+		MineralPatch nearestPatch = this.publicBoard.getMyInventory().getMineralPatches().stream().min((u1, u2) -> Double.compare(
+        		u1.getDistance(this.publicBoard.getMyInventory().getMain().getPosition()), 
+        		u2.getDistance(this.publicBoard.getMyInventory().getMain().getPosition()))).get();
+		Position defensePosition = nearestPatch.getMiddle(this.publicBoard.getMyInventory().getMain());
+		
 		this.attackingEnemies = frameUpdate.getEnemyUnits().stream().filter(
-				e -> e.isAttacking() && isInHisAttackRange(e)).collect(Collectors.toList());
+				e -> e.getDistance(defensePosition) < 192 &&
+				e.isAttacking()).collect(Collectors.toList());
 	}
 	
 	private Position getFuturePosition(MobileUnit unit, int frames) {
@@ -403,6 +448,10 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			if (message instanceof FrameUpdate) {
 				
 				update((FrameUpdate)message);
+//				if (!this.attackingEnemies.isEmpty()) {
+//					
+//					defending();
+//				}
 			} else if (message instanceof GatherMineralsMessage) {
 							
 				gathering(((GatherMineralsMessage) message).getMineralPatch());

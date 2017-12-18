@@ -7,6 +7,7 @@ import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
+import org.openbw.tsbw.unit.MineralPatch;
 import org.openbw.tsbw.unit.SCV;
 
 public class ConstructionProvider {
@@ -56,7 +57,11 @@ public class ConstructionProvider {
 	
 		for (CommandCenter cc : myInventory.getCommandCenters()) {
 			
-			if (cc.getDistance(position.toPosition()) < 192) {
+			MineralPatch nearestPatch = myInventory.getMineralPatches().stream().min((u1, u2) -> Double.compare(
+	        		u1.getDistance(cc.getPosition()), 
+	        		u2.getDistance(cc.getPosition()))).get();
+			
+			if (position.toPosition().getDistance(nearestPatch.getMiddle(cc)) < 192) {
 				return true;
 			}
 		}

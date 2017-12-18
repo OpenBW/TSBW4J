@@ -1,6 +1,11 @@
 package org.openbw.tsbw.unit;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
@@ -12,15 +17,23 @@ public class WorkerBoard {
 	private final ReentrantLock lock;
 	private boolean token;
 	
-	private UnitInventory unitInventory;
+	private UnitInventory myInventory;
 	private MapAnalyzer mapAnalyzer;
 	private InteractionHandler interactionHandler;
 	private ScoutingStrategy scoutingStrategy;
+	
+	private Map<MobileUnit, Set<SCV>> attackers;
 	
 	public WorkerBoard() {
 
 		this.lock = new ReentrantLock();
 		this.token = false;
+		this.attackers = new HashMap<>();
+	}
+	
+	Map<MobileUnit, Set<SCV>> getAttackers() {
+	
+		return this.attackers;
 	}
 	
 	MapAnalyzer getMapAnalyzer() {
@@ -28,9 +41,9 @@ public class WorkerBoard {
 		return this.mapAnalyzer;
 	}
 	
-	UnitInventory getUnitInventory() {
+	UnitInventory getMyInventory() {
 		
-		return this.unitInventory;
+		return this.myInventory;
 	}
 
 	InteractionHandler getInteractionHandler() {
@@ -76,11 +89,11 @@ public class WorkerBoard {
 		}
 	}
 
-	public void initialize(MapAnalyzer mapAnalyzer, UnitInventory unitInventory, InteractionHandler interactionHandler,
+	public void initialize(MapAnalyzer mapAnalyzer, UnitInventory myInventory, InteractionHandler interactionHandler,
 			ScoutingStrategy scoutingStrategy) {
 		
 		this.mapAnalyzer = mapAnalyzer;
-		this.unitInventory = unitInventory;
+		this.myInventory = myInventory;
 		this.interactionHandler = interactionHandler;
 		this.scoutingStrategy = scoutingStrategy;
 	}

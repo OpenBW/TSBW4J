@@ -14,8 +14,8 @@ import org.openbw.bwapi4j.type.Color;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.SCV;
 import org.openbw.tsbw.Constants;
+import org.openbw.tsbw.Group;
 import org.openbw.tsbw.MapAnalyzer;
-import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 
@@ -25,7 +25,7 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 
 	private static final Logger logger = LogManager.getLogger();
 	
-	private Squad<MobileUnit> squad;
+	private Group<MobileUnit> squad;
 	
 	private double[][] initialMap;
 	private double[][] map;
@@ -62,7 +62,7 @@ public class DefaultScoutingStrategy extends ScoutingStrategy {
 	}
 	
 	@Override
-	public void initialize(Squad<MobileUnit> squad, UnitInventory myInventory, UnitInventory enemyInventory) {
+	public void initialize(Group<MobileUnit> squad, UnitInventory myInventory, UnitInventory enemyInventory) {
 		
 		this.squad = squad;
 		

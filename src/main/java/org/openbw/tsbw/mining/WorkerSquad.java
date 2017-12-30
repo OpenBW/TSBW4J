@@ -10,14 +10,13 @@ import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.unit.Mechanical;
 import org.openbw.bwapi4j.unit.MobileUnit;
-import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.UnitInventory;
 
 public class WorkerSquad {
 
 //	private static final Logger logger = LogManager.getLogger();
 //	
-//	private Squad<MobileUnit> units;
+//	private Group<MobileUnit> units;
 //	private UnitInventory unitInventory;
 //	private Position position;
 //	private List<MobileUnit> hostileUnits;

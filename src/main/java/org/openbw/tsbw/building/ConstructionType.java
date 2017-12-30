@@ -62,6 +62,17 @@ public enum ConstructionType {
 		this.constructionProvider = new ConstructionProvider(type);
 	}
 	
+	public static ConstructionType get(UnitType unitType) {
+		
+		for (ConstructionType type : ConstructionType.values()) {
+			
+			if (type.unitType.equals(unitType)) {
+				return type;
+			}
+		}
+		return null;
+	}
+	
 	public boolean build(SCV worker, TilePosition tilePosition) {
 	
 		return worker.build(tilePosition, this.unitType);

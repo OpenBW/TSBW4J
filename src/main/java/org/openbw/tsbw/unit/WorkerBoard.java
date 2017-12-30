@@ -1,10 +1,13 @@
 package org.openbw.tsbw.unit;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.openbw.bwapi4j.InteractionHandler;
+import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.Mechanical;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.tsbw.MapAnalyzer;
 import org.openbw.tsbw.UnitInventory;
@@ -15,6 +18,7 @@ import co.paralleluniverse.strands.concurrent.ReentrantLock;
 public class WorkerBoard {
 
 	private final ReentrantLock lock;
+	private final ReentrantLock repairLock;
 	private boolean token;
 	
 	private UnitInventory myInventory;
@@ -23,17 +27,48 @@ public class WorkerBoard {
 	private ScoutingStrategy scoutingStrategy;
 	
 	private Map<MobileUnit, Set<SCV>> attackers;
+	private Map<Building, Set<SCV>> repairs;
 	
 	public WorkerBoard() {
 
 		this.lock = new ReentrantLock();
+		this.repairLock = new ReentrantLock();
 		this.token = false;
 		this.attackers = new HashMap<>();
+		this.repairs = new HashMap<>();
 	}
 	
 	Map<MobileUnit, Set<SCV>> getAttackers() {
 	
 		return this.attackers;
+	}
+	
+	boolean addRepair(Building mechanical, SCV worker) {
+		
+		this.repairLock.lock();
+		
+		boolean repairNeeded = false;
+		
+		Set<SCV> repairWorkers = this.repairs.get(mechanical);
+		if (repairWorkers == null) {
+			
+			repairWorkers = new HashSet<>();
+			this.repairs.put(mechanical, repairWorkers);
+		}
+		if (repairWorkers.size() < 2) {
+			
+			repairWorkers.add(worker);
+			repairNeeded = true;
+		}
+		
+		this.repairLock.unlock();
+		
+		return repairNeeded;
+	}
+	
+	void removeRepair(Mechanical mechanical, SCV worker) {
+		
+		this.repairs.get(mechanical).remove(worker);
 	}
 	
 	MapAnalyzer getMapAnalyzer() {

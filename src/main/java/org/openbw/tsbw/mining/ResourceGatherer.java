@@ -1,5 +1,6 @@
 package org.openbw.tsbw.mining;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -8,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.unit.CommandCenter;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.GroupListener;
-import org.openbw.tsbw.Squad;
 import org.openbw.tsbw.micro.math.AssignmentProblem;
 import org.openbw.tsbw.unit.MineralPatch;
 import org.openbw.tsbw.unit.SCV;
@@ -49,13 +49,13 @@ public class ResourceGatherer {
 	
 	private Group<MineralPatch> mineralPatches;
 	private Group<CommandCenter> commandCenters;
-	private Squad<SCV> scvs;
+	private Group<SCV> scvs;
 	
 	public ResourceGatherer() {
 		
 	}
 	
-	public void initialize(Squad<SCV> scvs, Group<CommandCenter> commandCenters, Group<MineralPatch> mineralPatches) {
+	public void initialize(Group<SCV> scvs, Group<CommandCenter> commandCenters, Group<MineralPatch> mineralPatches) {
 		
 		this.scvs = scvs;
 		this.commandCenters = commandCenters;
@@ -64,6 +64,12 @@ public class ResourceGatherer {
 		for (MineralPatch patch : mineralPatches) {
 			
 			patch.updateDistance(commandCenters);
+		}
+		
+		Iterator<MineralPatch> iterator = mineralPatches.iterator();
+		for (SCV scv : scvs) {
+			
+			scv.gather(iterator.next());
 		}
 	}
 	

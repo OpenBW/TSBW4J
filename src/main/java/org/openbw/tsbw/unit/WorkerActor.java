@@ -3,15 +3,15 @@ package org.openbw.tsbw.unit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openbw.bwapi4j.Position;
 import org.openbw.bwapi4j.TilePosition;
 import org.openbw.bwapi4j.type.BwError;
-import org.openbw.bwapi4j.type.UnitType;
 import org.openbw.bwapi4j.type.WeaponType;
+import org.openbw.bwapi4j.unit.Building;
+import org.openbw.bwapi4j.unit.Mechanical;
 import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.micro.AttackUnitCommand;
@@ -21,6 +21,8 @@ import org.openbw.tsbw.micro.GatherGasCommand;
 import org.openbw.tsbw.micro.GatherMineralsCommand;
 import org.openbw.tsbw.micro.HaltConstructionCommand;
 import org.openbw.tsbw.micro.MoveCommand;
+import org.openbw.tsbw.micro.RepairCommand;
+import org.openbw.tsbw.micro.ResumeBuildingCommand;
 import org.openbw.tsbw.micro.ScoutCommand;
 
 import co.paralleluniverse.actors.BasicActor;
@@ -32,20 +34,16 @@ public class WorkerActor extends BasicActor<Message, Void> {
 	private static final long serialVersionUID = 1L;
 	private static final Logger logger = LogManager.getLogger();
 	
-	private static int EXTRA_PIXELS_ENEMY_ATTACK_RANGE_DELAY = 2;
-	
-	private final double HALF_TURN_FRAMES;
-	
 	private SCV scv;
 	private WorkerBoard publicBoard;
-	List<MobileUnit> attackingEnemies;
+	private List<MobileUnit> attackingEnemies;
+	private List<Building> buildingsToRepair;
 	private boolean alive;
 	private int wakeUp;
 	private Command nextCommand;
 	private int frame;
 	private int minerals;
 	private int gas;
-	private int remainingLatencyFrames;
 	
 	private boolean gathering;
 	private boolean available;
@@ -58,13 +56,11 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		this.frame = 0;
 		this.minerals = 0;
 		this.gas = 0;
-		this.remainingLatencyFrames = 0;
 		this.nextCommand = null;
 		this.gathering = false;
 		this.available = true;
 		this.alive = true;
 		this.lastCommandReturnValue = false;
-		this.HALF_TURN_FRAMES = 180 / UnitType.Terran_SCV.turnRadius();
 	}
 	
 	void setSCV(SCV scv) {
@@ -176,6 +172,16 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				if (message instanceof FrameUpdate) {
 					
 					update((FrameUpdate)message);
+					
+					for (Building toRepair : this.buildingsToRepair) {
+						
+						if (this.publicBoard.addRepair(toRepair, this.scv)) {
+							
+							repairing(toRepair);
+							break;
+						}
+						
+					}
 				} else if (message instanceof BuildMessage) {
 					
 					logger.warn("frame {}: {} received build request but am defending.", this.frame, this.scv);
@@ -207,6 +213,28 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			
 			this.alive &= this.scv.exists();
 		}
+	}
+	
+	protected void resumeBuilding(Building construction) throws InterruptedException, SuspendExecution {
+		
+		this.available = false;
+		boolean success = execute(new ResumeBuildingCommand(this.scv, construction));
+		while(construction.exists() && !construction.isCompleted() && this.alive) {
+			
+			Message message = receive();
+			if (message instanceof FrameUpdate) {
+				
+				update((FrameUpdate)message);
+				if (!success) {
+					
+					success = execute(new ResumeBuildingCommand(this.scv, construction));
+				}
+			}
+			
+			this.alive &= this.scv.exists();
+		}
+		
+		this.available = true;
 	}
 	
 	protected void constructing(TilePosition constructionSite, ConstructionType type) throws InterruptedException, SuspendExecution {
@@ -254,6 +282,8 @@ public class WorkerActor extends BasicActor<Message, Void> {
 					
 					// TODO call for help
 					success = execute(new HaltConstructionCommand(this.scv));
+					MineralPatch nearestPatch = this.scv.getClosest(this.publicBoard.getMyInventory().getMineralPatches());
+					success = execute(new GatherMineralsCommand(this.scv, nearestPatch));
 					done = true;
 				}
 			} else if (message instanceof GatherMineralsMessage) {
@@ -263,7 +293,6 @@ public class WorkerActor extends BasicActor<Message, Void> {
 				
 				logger.warn("frame {}: {} received build request although I am already constructing.", this.frame, this.scv);
 			}
-			// TODO abandon building if low on health
 			// TODO ask for help if being attacked
 			
 			this.alive &= this.scv.exists();
@@ -285,10 +314,6 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			if (message instanceof FrameUpdate) {
 				
 				update((FrameUpdate)message);
-//				if (!this.scv.isGatheringGas()) {
-//					
-//					execute(new GatherGasCommand(this.scv, refinery));
-//				}
 			} else if (message instanceof BuildMessage) {
 				
 				logger.warn("frame {}: {} received build request although I am gathering gas.", this.frame, this.scv);
@@ -309,6 +334,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		logger.trace("frame {}: {} moving to {}.", this.frame, this.scv, position);
 		
 		boolean success = execute(new MoveCommand(this.scv, position));
+		
 		while (this.scv.getDistance(position) > 96 && this.alive) {
 			
 			Message message = receive();
@@ -332,13 +358,27 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		}
 	}
 	
+	protected void repairing(Building toRepair) throws InterruptedException, SuspendExecution {
+		
+		logger.info("BUNKER NEEDS REPAIR");
+		
+		execute(new RepairCommand(this.scv, (Mechanical)toRepair));
+		while (toRepair.exists() && toRepair.getHitPoints() < toRepair.maxHitPoints() && this.alive) {
+			
+			receive();
+			
+			this.alive &= this.scv.exists();
+		}
+	}
+	
 	protected void gathering(MineralPatch mineralPatch) throws InterruptedException, SuspendExecution {
 		
 		logger.trace("frame {}: {} gathering from {}.", this.frame, this.scv, mineralPatch);
 		
 		MineralPatch myPatch = mineralPatch;
+		
 		this.gathering = true;
-		if (!myPatch.isVisible() || !myPatch.exists()) {
+		if (!myPatch.exists()) {
 			
 			logger.trace("frame {}: {} target {} is not visible. Moving there first.", this.frame, this.scv, mineralPatch);
 			moveTo(myPatch.getPosition());
@@ -351,6 +391,19 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			if (message instanceof FrameUpdate) {
 				
 				update((FrameUpdate)message);
+				
+				for (Building toRepair : this.buildingsToRepair) {
+					
+					if (this.publicBoard.addRepair(toRepair, this.scv)) {
+						
+						this.gathering = false;
+						myPatch.removeScv();
+						repairing(toRepair);
+						this.gathering = true;
+						success = false;
+						break;
+					}
+				}
 				
 				if (!this.attackingEnemies.isEmpty()) {
 					
@@ -366,14 +419,20 @@ public class WorkerActor extends BasicActor<Message, Void> {
 					success = execute(new GatherMineralsCommand(this.scv, myPatch));
 					if (!success) {
 						logger.error("frame {}: gather command failed for {}.", this.frame, this.scv);
+					} else {
+						
+						this.gathering = true;
 					}
+				} else if (this.scv.getTargetUnit() instanceof MineralPatch && !myPatch.equals(this.scv.getTargetUnit())) {
+					
+//					execute(new GatherMineralsCommand(this.scv, myPatch));
 				}
 			} else if (message instanceof GatherGasMessage) {
 				
 				gathering(((GatherGasMessage) message).getRefinery());
 			} else if (message instanceof GatherMineralsMessage) {
 				
-//				myPatch.removeScv();
+				myPatch.removeScv();
 				myPatch = ((GatherMineralsMessage) message).getMineralPatch();
 				if (!myPatch.isVisible() || !myPatch.exists()) {
 					moveTo(myPatch.getPosition());
@@ -382,20 +441,31 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			} else if (message instanceof BuildMessage) {
 				
 				this.gathering = false;
+				myPatch.removeScv();
 				BuildMessage bm = (BuildMessage) message;
 				constructing(bm.getConstructionSite(), bm.getType());
-				this.gathering = true;
+				success = false;
+			} else if (message instanceof ResumeBuildingMessage) {
+				
+				ResumeBuildingMessage bm = (ResumeBuildingMessage) message;
+				this.gathering = false;
+				myPatch.removeScv();
+				resumeBuilding(bm.getConstruction());
 				success = false;
 			} else if (message instanceof ScoutMessage) {
 				
 				scouting();
 			}
 			
-			done &= myPatch.getResources() > 0;
+			done &= myPatch.getResources() > 0 && myPatch.exists();
 			this.alive &= this.scv.exists();
 		}
+		
+		if (this.gathering) {
+			
+			myPatch.removeScv();
+		}
 		this.gathering = false;
-		myPatch.removeScv();
 	}
 	
 	private void update(FrameUpdate frameUpdate) {
@@ -403,39 +473,11 @@ public class WorkerActor extends BasicActor<Message, Void> {
 		this.frame = frameUpdate.getFrame();
 		this.minerals = frameUpdate.getMinerals();
 		this.gas = frameUpdate.getGas();
-		this.remainingLatencyFrames = frameUpdate.getRemainingLatencyFrames();
 		
-		MineralPatch nearestPatch = this.publicBoard.getMyInventory().getMineralPatches().stream().min((u1, u2) -> Double.compare(
-        		u1.getDistance(this.publicBoard.getMyInventory().getMain().getPosition()), 
-        		u2.getDistance(this.publicBoard.getMyInventory().getMain().getPosition()))).get();
-		Position defensePosition = nearestPatch.getMiddle(this.publicBoard.getMyInventory().getMain());
-		
-		this.attackingEnemies = frameUpdate.getEnemyUnits().stream().filter(
-				e -> e.getDistance(defensePosition) < 192 &&
-				e.isAttacking()).collect(Collectors.toList());
+		this.attackingEnemies = frameUpdate.getAttackingUnits();
+		this.buildingsToRepair = frameUpdate.getBuildingsToRepair();
 	}
 	
-	private Position getFuturePosition(MobileUnit unit, int frames) {
-		
-		Position currentPosition = unit.getPosition();
-		
-		double dx = unit.getVelocityX() * frames;
-		double dy = unit.getVelocityY() * frames;
-		
-		return new Position((int)(currentPosition.getX() + dx), (int)(currentPosition.getY() + dy));
-	}
-	
-	private boolean isInHisAttackRange(MobileUnit otherUnit) {
-		
-		WeaponType weapon = otherUnit.getGroundWeapon();
-		
-		int range = weapon.maxRange() 
-				+ EXTRA_PIXELS_ENEMY_ATTACK_RANGE_DELAY * otherUnit.getGroundWeapon().damageAmount() * otherUnit.getMaxGroundHits();
-		
-		int latencyFrames = this.remainingLatencyFrames + (int)HALF_TURN_FRAMES;
-		return this.scv.getDistance(getFuturePosition(otherUnit, latencyFrames)) <= range;
-	}
-
 	@Override
 	protected Void doRun() throws InterruptedException, SuspendExecution {
 		
@@ -448,23 +490,7 @@ public class WorkerActor extends BasicActor<Message, Void> {
 			if (message instanceof FrameUpdate) {
 				
 				update((FrameUpdate)message);
-//				if (!this.attackingEnemies.isEmpty()) {
-//					
-//					defending();
-//				}
-			} else if (message instanceof GatherMineralsMessage) {
-							
-				gathering(((GatherMineralsMessage) message).getMineralPatch());
-			} else if (message instanceof GatherGasMessage) {
-				
-				gathering(((GatherGasMessage) message).getRefinery());
-			} else if (message instanceof BuildMessage) {
-				
-				BuildMessage bm = (BuildMessage) message;
-				constructing(bm.getConstructionSite(), bm.getType());
-			} else if (message instanceof ScoutMessage) {
-				
-				scouting();
+				gathering(this.publicBoard.getMyInventory().getMineralPatches().first());
 			}
 			
 			this.alive &= this.scv.exists();

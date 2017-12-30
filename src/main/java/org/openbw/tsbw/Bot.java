@@ -28,9 +28,9 @@ import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.building.FactoryConstruction;
 import org.openbw.tsbw.building.RefineryConstruction;
 import org.openbw.tsbw.building.SupplyDepotConstruction;
+import org.openbw.tsbw.example.scouting.DefaultScoutingStrategy;
 import org.openbw.tsbw.mining.ResourceGatherer;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
-import org.openbw.tsbw.strategy.ScoutingFactory;
 import org.openbw.tsbw.strategy.ScoutingStrategy;
 import org.openbw.tsbw.strategy.StrategyFactory;
 import org.openbw.tsbw.unit.FrameUpdate;
@@ -59,7 +59,6 @@ public abstract class Bot {
 	protected BuildingPlanner buildingPlanner;
 	protected ResourceGatherer resourceGatherer;
 	
-	protected ScoutingFactory scoutingFactory;
 	protected ScoutingStrategy scoutingStrategy;
 	
 	protected StrategyFactory strategyFactory;
@@ -92,9 +91,7 @@ public abstract class Bot {
 		return new UnitFactory(workerBoard);
 	}
 	
-	public Bot(ScoutingFactory scoutingFactory) {
-		
-		this.scoutingFactory = scoutingFactory;
+	public Bot() {
 		
 		this.eventListener = new BotEventListener(this);
 		this.unitInventories = new HashMap<Player, UnitInventory>();
@@ -146,14 +143,14 @@ public abstract class Bot {
         ConstructionType.Terran_Refinery.setConstructionProvider(new RefineryConstruction());
         ConstructionType.Terran_Starport.setConstructionProvider(new FactoryConstruction()); // on purpose
         
-		this.buildingPlanner = new BuildingPlanner(this.unitInventories.get(interactionHandler.self()), this.mapAnalyzer, this.interactionHandler);
-		this.buildingPlanner.initialize();
+        UnitInventory myInventory = this.unitInventories.get(this.player1);
 		
-		UnitInventory myInventory = this.unitInventories.get(this.player1);
+		this.buildingPlanner = new BuildingPlanner(myInventory, this.mapAnalyzer, this.interactionHandler);
+		this.buildingPlanner.initialize();
 		
 		this.resourceGatherer = new ResourceGatherer();
 		
-		this.scoutingStrategy = this.scoutingFactory.getStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
+		this.scoutingStrategy = getScoutingStrategy(this.mapAnalyzer, this.mapDrawer, this.interactionHandler);
 		this.strategyFactory = new StrategyFactory(this.bw, this.mapAnalyzer, this.scoutingStrategy, this.buildingPlanner, this.unitInventories.get(player1), this.unitInventories.get(player2));
 		
 		this.scoutingStrategy.initialize(myInventory.getScouts(), myInventory, this.unitInventories.get(player2));
@@ -167,6 +164,11 @@ public abstract class Bot {
 		.forEach(u -> myInventory.register((VespeneGeyser)u));
 
 		this.onStart();
+	}
+	
+	protected ScoutingStrategy getScoutingStrategy(MapAnalyzer mapAnalyzer, MapDrawer mapDrawer, InteractionHandler interactionHandler) {
+	
+		return new DefaultScoutingStrategy(mapAnalyzer, mapDrawer, interactionHandler);
 	}
 	
 	public void onEnd(boolean isWinner) {
@@ -191,7 +193,6 @@ public abstract class Bot {
 			
 			UnitInventory myInventory = this.unitInventories.get(this.player1);
 			this.resourceGatherer.initialize(myInventory.getWorkers(), myInventory.getCommandCenters(), myInventory.getMineralPatches());
-			myInventory.getAvailableWorkers().forEach(w -> w.gatherMinerals());
 			gameStrategy.start(player1.minerals(), player1.gas());
 			gameStarted = true;
 		} else if (frameCount == 0) {
@@ -199,7 +200,7 @@ public abstract class Bot {
 		}
 		
 		FrameUpdate frameUpdate = new FrameUpdate(frameCount, player1.minerals(), player1.gas(), 
-				this.interactionHandler.getRemainingLatencyFrames(), this.unitInventories.get(this.player2));
+				this.interactionHandler.getRemainingLatencyFrames(), this.unitInventories.get(this.player1), this.unitInventories.get(this.player2));
 		
 		this.subscribers.stream().forEach(s -> s.onReceive(frameUpdate));
 		

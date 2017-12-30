@@ -117,9 +117,12 @@ public class ConstructionProject implements Project {
 													mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite))).orElse(null);
 			}
 			
-			logger.trace("estimated resources on arrival meets requirements. Sending {} to build {}.", this.builder, this.constructionType);
-			this.builder.construct(constructionSite, constructionType);
-			this.started = true;
+			if (this.builder != null) {
+				
+				logger.trace("estimated resources on arrival meets requirements. Sending {} to build {}.", this.builder, this.constructionType);
+				this.builder.construct(constructionSite, constructionType);
+				this.started = true;
+			}
 		}
 	}
 

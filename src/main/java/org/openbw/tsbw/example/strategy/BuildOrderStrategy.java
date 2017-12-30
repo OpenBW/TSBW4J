@@ -1,26 +1,15 @@
 package org.openbw.tsbw.example.strategy;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openbw.bwapi4j.Position;
-import org.openbw.bwapi4j.type.Color;
-import org.openbw.bwapi4j.type.WeaponType;
 import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.Factory;
-import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.tsbw.GroupListener;
 import org.openbw.tsbw.building.ConstructionType;
 import org.openbw.tsbw.strategy.AbstractGameStrategy;
-import org.openbw.tsbw.unit.Refinery;
-import org.openbw.tsbw.unit.SCV;
-
-import bwta.Chokepoint;
-import bwta.Polygon;
-import bwta.Region;
 	
 /**
  * This strategy contains a very basic concept to execute a pre-defined build order.
@@ -35,27 +24,6 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 	private List<BoAction> buildOrder;
 	private int boPointer;
 	
-	private GroupListener<SCV> workerListener = new GroupListener<SCV>() {
-
-		@Override
-		public void onAdd(SCV worker) {
-			
-			worker.gatherMinerals();
-		}
-
-		@Override
-		public void onRemove(SCV worker) {
-			
-			// do nothing
-		}
-
-		@Override
-		public void onDestroy(SCV worker) {
-			
-			// do nothing
-		}
-	};
-	
 	/**
 	 * Listens to events affecting my buildings.
 	 */
@@ -66,16 +34,8 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 			
 			logger.info("frame {}: building {} was added.", interactionHandler.getFrameCount(), building);
 			
-			// if our refinery finished, add an additional workers to mine gas from it
-			if (building instanceof Refinery) {
+			if (building instanceof Factory) {
 				
-				Iterator<SCV> iterator = myInventory.getAvailableWorkers().iterator();
-				for (int i = 0; i < 3; i++) {
-					if (iterator.hasNext()) {
-						iterator.next().gather((Refinery) building);
-					}
-				}
-			} else if (building instanceof Factory) {
 				buildingPlanner.queueMachineShop((Factory)building);
 			}
 		}
@@ -104,10 +64,9 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 		this.boPointer = 0;
 		this.buildOrder.clear();
 		
-		this.myInventory.getWorkers().addListener(workerListener);
 		this.myInventory.getBuildings().addListener(buildingsListener);
 		
-		// add actions here. this just a random build order building some depots, a barracks, and a factory.
+		// add actions here. this just a random build order building one of each building units.
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
 		this.buildOrder.add(new TrainWorkerAction(myInventory.getMain()));
@@ -141,60 +100,13 @@ public class BuildOrderStrategy extends AbstractGameStrategy {
 	@Override
 	public void run(int frame, int availableMinerals, int availableGas, int availableSupply) {
 		
-		drawGraphics();
-		
 		if (boPointer < buildOrder.size()) {
+			
 			BoAction action = buildOrder.get(boPointer);
 			if (action.execute(availableMinerals, availableGas, availableSupply)) {
+				
 				this.boPointer++;
 				logger.debug("frame {}: executed BO step: {}", frame, action);
-			}
-		}
-	}
-	
-	private void drawGraphics() {
-
-		for (Region region : this.mapAnalyzer.getRegions()) {
-			
-			Polygon polygon = region.getPolygon();
-			Position previousPoint = polygon.getPoints().get(polygon.getPoints().size() - 1);
-			for (Position point : polygon.getPoints()) {
-
-				mapDrawer.drawLineMap(previousPoint, point, Color.GREEN);
-				previousPoint = point;
-			}
-		}
-		mapDrawer.drawCircleMap(2512, 2408, 50, Color.RED);
-		mapDrawer.drawCircleMap(2656, 2848, 50, Color.RED);
-		for (Chokepoint chokepoint : this.mapAnalyzer.getChokepoints()) {
-			
-			if (chokepoint.getSides().first == null) {
-				mapDrawer.drawCircleMap(chokepoint.getSides().second, 50, Color.RED);
-				System.out.println(chokepoint.getSides().second);
-			} else if (chokepoint.getSides().second == null) {
-				mapDrawer.drawCircleMap(chokepoint.getSides().first, 50, Color.RED);
-				System.out.println(chokepoint.getSides().first);
-			} else {
-				mapDrawer.drawLineMap(chokepoint.getSides().first, chokepoint.getSides().second, Color.YELLOW);
-			}
-			mapDrawer.drawTextMap(chokepoint.getCenter(), "" + this.mapAnalyzer.getValue(chokepoint));
-		}
-
-		for (MobileUnit unit : myInventory.getArmyUnits()) {
-			
-			mapDrawer.drawTextMap(unit.getPosition(), unit.getTilePosition().toString());
-			if (unit.getTargetPosition() != null && unit.getGroundWeapon() != WeaponType.None) {
-				mapDrawer.drawLineMap(unit.getPosition(), unit.getTargetPosition(), Color.RED);
-				mapDrawer.drawCircleMap(unit.getPosition(), unit.getGroundWeapon().maxRange() + unit.height() / 2, Color.RED);
-			}
-		}
-		
-		for (SCV unit : myInventory.getWorkers()) {
-			
-			mapDrawer.drawTextMap(unit.getPosition(), unit.getTilePosition().toString());
-			if (unit.isMoving()) {
-				
-				mapDrawer.drawLineMap(unit.getPosition(), unit.getTargetPosition(), Color.RED);
 			}
 		}
 	}

@@ -40,8 +40,6 @@ public class DummyStrategy extends AbstractGameStrategy {
 		public void onAdd(SCV worker) {
 			
 			logger.info("worker {} was added.", worker);
-			
-			// let's make every worker mine by default
 			worker.gatherMinerals();
 		}
 

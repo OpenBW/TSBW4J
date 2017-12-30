@@ -1,24 +1,14 @@
 package org.openbw.tsbw.example;
 
 import org.openbw.tsbw.Bot;
-import org.openbw.tsbw.example.scouting.DefaultScoutingFactory;
 import org.openbw.tsbw.example.strategy.BuildOrderStrategy;
 import org.openbw.tsbw.example.strategy.DummyStrategy;
-import org.openbw.tsbw.strategy.ScoutingFactory;
 
 public class ExampleBot extends Bot {
 
-	public ExampleBot(ScoutingFactory scoutingFactory) {
-		
-		super(scoutingFactory);
-	}
-	
 	public static void main(String[] args) throws Exception {
 		
-		ScoutingFactory scoutingFactory = new DefaultScoutingFactory();
-		
-		
-		ExampleBot exampleBot = new ExampleBot(scoutingFactory);
+		ExampleBot exampleBot = new ExampleBot();
 		
 		// run the bot. It will search for a game lobby to join.
 		exampleBot.run();

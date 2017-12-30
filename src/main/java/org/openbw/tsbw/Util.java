@@ -8,7 +8,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import org.openbw.bwapi4j.unit.MobileUnit;
 import org.openbw.bwapi4j.unit.Unit;
 
 public class Util {
@@ -33,36 +32,6 @@ public class Util {
 
 			@Override
 			public Function<Group<T>, Group<T>> finisher() {
-				return Function.identity();
-			}
-
-			@Override
-			public Set<Characteristics> characteristics() {
-				return Collections.singleton(Characteristics.IDENTITY_FINISH);
-			}
-		};
-    }
-	
-	public static <T extends MobileUnit> Collector<T, Squad<T>, Squad<T>> toSquad() {
-		return new Collector<T, Squad<T>, Squad<T>>(){
-
-			@Override
-			public Supplier<Squad<T>> supplier() {
-				return (Supplier<Squad<T>>) Squad::new;
-			}
-
-			@Override
-			public BiConsumer<Squad<T>, T> accumulator() {
-				return (group, value) -> group.add(value);
-			}
-			
-			@Override
-			public BinaryOperator<Squad<T>> combiner() {
-				return (left, right) -> { left.addAll(right); return left; };
-			}
-
-			@Override
-			public Function<Squad<T>, Squad<T>> finisher() {
 				return Function.identity();
 			}
 

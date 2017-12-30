@@ -157,4 +157,9 @@ public class MineralPatch extends org.openbw.bwapi4j.unit.MineralPatch {
 		this.assignedScvs++;
 		this.mineralPatches.add(this);
 	}
+	
+	public int getScvCount() {
+		
+		return this.assignedScvs;
+	}
 }

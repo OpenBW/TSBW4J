@@ -1,6 +1,7 @@
 package org.openbw.tsbw.unit;
 
 import org.openbw.bwapi4j.TilePosition;
+import org.openbw.bwapi4j.unit.Building;
 import org.openbw.bwapi4j.unit.GasMiningFacility;
 import org.openbw.tsbw.Group;
 import org.openbw.tsbw.Subscriber;
@@ -52,6 +53,11 @@ public class SCV extends org.openbw.bwapi4j.unit.SCV implements Subscriber<Frame
 		
 		this.workerActor.setAvailable(false);
 		this.workerActor.sendOrInterrupt(new BuildMessage(constructionSite, type));
+	}
+	
+	public void resume(Building construction) {
+	
+		// TODO
 	}
 	
 	public boolean isAvailable() {

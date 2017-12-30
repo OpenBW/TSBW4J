@@ -36,10 +36,10 @@ public class UnitInventory {
 	private Collection<PlayerUnit> allUnits;
 	
 	private Group<PlayerUnit> destroyedUnits;
-	private Squad<MobileUnit> scouts;
+	private Group<MobileUnit> scouts;
 	
-	private Squad<SCV> workers;
-	private Squad<MobileUnit> armyUnits;
+	private Group<SCV> workers;
+	private Group<MobileUnit> armyUnits;
 	
 	private Collection<Bullet> bullets;
 	private MapAnalyzer mapAnalyzer;
@@ -60,9 +60,9 @@ public class UnitInventory {
 		this.constructions = new Group<>();
 		this.allUnits = ConcurrentHashMap.newKeySet();
 		this.destroyedUnits = new Group<>();
-		this.scouts = new Squad<>();
-		this.workers = new Squad<>();
-		this.armyUnits = new Squad<>();
+		this.scouts = new Group<>();
+		this.workers = new Group<>();
+		this.armyUnits = new Group<>();
 		this.bullets = ConcurrentHashMap.newKeySet();
 	}
 
@@ -266,17 +266,17 @@ public class UnitInventory {
 		return this.destroyedUnits;
 	}
 
-	public Squad<MobileUnit> getScouts() {
+	public Group<MobileUnit> getScouts() {
 		
 		return this.scouts;
 	}
 
-	public Squad<SCV> getWorkers() {
+	public Group<SCV> getWorkers() {
 		
 		return this.workers;
 	}
 
-	public Squad<MobileUnit> getArmyUnits() {
+	public Group<MobileUnit> getArmyUnits() {
 		
 		return this.armyUnits;
 	}

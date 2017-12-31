@@ -104,28 +104,22 @@ public class BuildingPlanner {
 		this.myInventory.getBuildings().addListener(buildingListener);
 	}
 
-	public ConstructionProject queue(ConstructionType constructionType, TilePosition constructionSite, SCV worker) {
+	public void queue(ConstructionType constructionType, TilePosition constructionSite, SCV worker) {
 		
 		logger.debug("Queueing {}...", constructionType);
+		
 		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite, worker);
 		this.projects.add(constructionProject);
-		return constructionProject;
 	}
 
-	public ConstructionProject queue(ConstructionType constructionType, TilePosition constructionSite) {
+	public void queue(ConstructionType constructionType, TilePosition constructionSite) {
 		
-		logger.debug("Queueing {}...", constructionType);
-		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects, constructionSite);
-		this.projects.add(constructionProject);
-		return constructionProject;
+		queue(constructionType, constructionSite, null);
 	}
 	
-	public ConstructionProject queue(ConstructionType constructionType) {
+	public void queue(ConstructionType constructionType) {
 		
-		logger.debug("Queueing {}...", constructionType);
-		ConstructionProject constructionProject = new ConstructionProject(constructionType, this.mapAnalyzer, this.interactionHandler, this.myInventory, this.projects);
-		this.projects.add(constructionProject);
-		return constructionProject;
+		queue(constructionType, null, null);
 	}
 	
 	public void queueMachineShop(Factory factory) {

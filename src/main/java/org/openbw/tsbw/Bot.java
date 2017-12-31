@@ -64,7 +64,7 @@ public abstract class Bot {
 	protected StrategyFactory strategyFactory;
 	protected AbstractGameStrategy gameStrategy;
 	
-	protected WorkerBoard workerBoard;
+	protected WorkerBoard publicBoard;
 	
 	protected boolean scoutingEnabled = true;
 	protected boolean cleanLogging = false;
@@ -77,7 +77,7 @@ public abstract class Bot {
 		logger.trace("executing run().");
 		this.bw = new BW(this.eventListener);
 		
-		this.workerBoard = new WorkerBoard();
+		this.publicBoard = getPublicBoard();
 		this.interactionHandler = bw.getInteractionHandler();
         this.mapDrawer = bw.getMapDrawer();
 		this.bw.setUnitFactory(getUnitFactory());
@@ -86,9 +86,14 @@ public abstract class Bot {
 		bw.startGame();
 	}
 	
+	protected WorkerBoard getPublicBoard() {
+	
+		return new WorkerBoard();
+	}
+	
 	protected UnitFactory getUnitFactory() {
 		
-		return new UnitFactory(workerBoard);
+		return new UnitFactory(publicBoard);
 	}
 	
 	public Bot() {
@@ -155,7 +160,7 @@ public abstract class Bot {
 		
 		this.scoutingStrategy.initialize(myInventory.getScouts(), myInventory, this.unitInventories.get(player2));
 		
-		this.workerBoard.initialize(this.mapAnalyzer, myInventory, this.interactionHandler, this.scoutingStrategy);
+		this.publicBoard.initialize(this.mapAnalyzer, myInventory, this.interactionHandler, this.scoutingStrategy);
 		
 		this.bw.getAllUnits().stream().filter(u -> u instanceof MineralPatch)
 				.forEach(u -> myInventory.register((MineralPatch)u));

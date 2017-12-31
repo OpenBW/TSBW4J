@@ -4,6 +4,13 @@ import java.util.Queue;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.mina.statemachine.StateControl;
+import org.apache.mina.statemachine.StateMachine;
+import org.apache.mina.statemachine.StateMachineFactory;
+import org.apache.mina.statemachine.StateMachineProxyBuilder;
+import org.apache.mina.statemachine.annotation.State;
+import org.apache.mina.statemachine.annotation.Transition;
+import org.apache.mina.statemachine.annotation.Transitions;
 import org.openbw.bwapi4j.InteractionHandler;
 import org.openbw.bwapi4j.MapDrawer;
 import org.openbw.bwapi4j.TilePosition;
@@ -17,228 +24,295 @@ import org.openbw.tsbw.analysis.PPF2;
 import org.openbw.tsbw.unit.Refinery;
 import org.openbw.tsbw.unit.SCV;
 
-//TODO the implementation is not robust yet. handle cases:
-//- worker gets killed after assignment but before arriving at construction site
-//- worker gets killed while constructing
-//- construction site gets unavailable after worker assignment
-//- building gets destroyed while constructing
 public class ConstructionProject implements Project {
 
 	private static final Logger logger = LogManager.getLogger();
 	
-	private MapAnalyzer mapAnalyzer;
-	private InteractionHandler interactionHandler;
-	private UnitInventory myInventory;
-	private Queue<Project> projects;
-	
-	private ConstructionType constructionType;
-	private SCV builder;
-	private TilePosition constructionSite;
-	
-	private Building building;
-	private int queuedGas;
-	private int queuedMinerals;
+	public interface ConstructionStateMachine {
 		
-	private boolean started;
-	private boolean done;
-	
-	private int estimatedMining;
-	private int estimatedGas;
-	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects) {
+		public void onFrame(Message message);
 		
-		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, null, null);
+		public void constructionStarted(Building building);
+		
+		public void completed();
 	}
 	
-	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects, TilePosition constructionSite) {
+	public static class ConstructionStateMachineImpl {
 		
-		this(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, constructionSite, null);
+		@State
+		public static final String QUEUED = "Queued";
+		@State
+		public static final String MOVING_TO_SITE = "MovingToSite";
+		@State
+		public static final String CONSTRUCTING = "Constructing";
+		@State
+		public static final String COMPLETED = "Completed";
+		@State
+		public static final String ABANDONED = "Abandonded";
+		
+		private MapAnalyzer mapAnalyzer;
+		private InteractionHandler interactionHandler;
+		private UnitInventory myInventory;
+		private Queue<Project> projects;
+		
+		private ConstructionType constructionType;
+		private boolean completed;
+		private int estimatedMineralMiningDuringTravel;
+		private int estimatedGasMiningDuringTravel;
+		
+		private SCV builder;
+		private TilePosition constructionSite;
+		private Building building;
+		private int queuedGas;
+		private int queuedMinerals;
+		
+		public ConstructionStateMachineImpl(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects, TilePosition constructionSite, SCV builder) {
+			
+			this.constructionType = constructionType;
+			this.mapAnalyzer = mapAnalyzer;
+			this.interactionHandler = interactionHandler;
+			this.myInventory = myInventory;
+			this.projects = projects;
+			
+			this.constructionSite = constructionSite;
+			this.builder = builder;
+			this.queuedGas = this.constructionType.getGasPrice();
+			this.queuedMinerals = this.constructionType.getMineralPrice();
+			this.completed = false;
+			
+			SCV tmpBuilder = this.builder;
+			
+			if (tmpBuilder == null) {
+				
+				tmpBuilder = myInventory.getAvailableWorkers().max((u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints())).orElse(null);
+			}
+			if (this.constructionSite == null) {
+				
+				findConstructionSite(tmpBuilder);
+			}
+			estimateMining(tmpBuilder);
+		}
+		
+		@Transitions({
+			@Transition(on = "onFrame", in = COMPLETED),
+			@Transition(on = "onFrame", in = ABANDONED)
+		})
+		public void doNothing() {
+			
+		}
+		
+		@Transition(on = "onFrame", in = CONSTRUCTING)
+		public void checkIfBuilderAlive(Message message) {
+			
+			if (this.builder == null || !this.builder.exists()) {
+				
+				this.builder = myInventory.getAvailableWorkers().max((u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints())).orElse(null);
+				if (this.builder != null) {
+					this.builder.resume(this.building);
+				}
+			}
+		}
+		
+		@Transition(on = "onFrame", in = MOVING_TO_SITE)
+		public void checkIfArrivedAtSite(Message message) {
+			
+			if (!this.builder.exists()) {
+				
+				this.builder = null;
+				StateControl.breakAndCallNow(QUEUED);
+			}
+		}
+		
+		@Transition(on = "onFrame", in = QUEUED)
+		public void checkMoveToSite(Message message) {
+			
+			if (message.getMinerals() + this.estimatedMineralMiningDuringTravel >= this.constructionType.getMineralPrice() 
+					&& message.getGas() + this.estimatedGasMiningDuringTravel >= this.constructionType.getGasPrice()) {
+
+				if (this.builder == null) {
+					
+					this.builder = myInventory.getAvailableWorkers().min(
+							(u1, u2) -> Integer.compare(this.mapAnalyzer.getGroundDistance(u1.getTilePosition(), this.constructionSite), 
+									this.mapAnalyzer.getGroundDistance(u2.getTilePosition(), this.constructionSite))).orElse(null);
+				}
+				
+				if (this.builder != null) {
+					
+					logger.trace("estimated resources on arrival meets requirements. Sending {} to build {}.", this.builder, this.constructionType);
+					this.builder.construct(this.constructionSite, this.constructionType);
+					StateControl.breakAndCallNext(MOVING_TO_SITE);
+				}
+			}
+		}
+
+		@Transition(on = "constructionStarted", in = MOVING_TO_SITE, next = CONSTRUCTING)
+		public void startConstruction(Building building) {
+			
+			logger.debug("{}: Construction of {} has started.", this.interactionHandler.getFrameCount(), building);
+			this.queuedGas = 0;
+			this.queuedMinerals = 0;
+			this.building = building;
+		}
+		
+		@Transition(on = "completed", in = CONSTRUCTING, next = COMPLETED)
+		public void complete() {
+			
+			this.completed = true;
+			this.builder.gatherMinerals();
+		}
+
+		private void estimateMining(SCV builder) {
+			
+			double distance = this.mapAnalyzer.getGroundDistance(builder.getTilePosition(), constructionSite);
+			double travelTimetoConstructionSite = distance / Constants.AVERAGE_SCV_SPEED;
+			this.estimatedMineralMiningDuringTravel = (int)PPF2.calculateEstimatedMining((int)travelTimetoConstructionSite, (int)this.myInventory.getAvailableWorkers().count() - 1);
+			this.estimatedGasMiningDuringTravel = (int)(this.myInventory.getRefineries().stream()
+					.map(r -> (Refinery)r).mapToDouble(r -> r.getMiningRate()).sum() * travelTimetoConstructionSite);
+		}
+
+		private void findConstructionSite(SCV builder) {
+			
+			// TODO the OR condition makes it less robust: CCs can only be built on base location tile positions.
+			// better: attempt to free the construction site. if still not successful, find a spot nearby.
+			if (this.constructionSite == null || this.constructionType == ConstructionType.Terran_Command_Center) {
+				
+				this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects);
+			} else {
+				
+				this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects, this.constructionSite);
+			}
+			logger.trace("found construction site at {} for {}.", this.constructionSite, this.constructionType);
+		}
+		
+		public int getQueuedGas() {
+			
+			return this.queuedGas;
+		}
+		
+		public int getQueuedMinerals() {
+			
+			return this.queuedMinerals;
+		}
+		
+		public boolean isConstructing(Building building) {
+			
+			if (this.building != null) {
+				
+				return this.building.equals(building);
+			} else if (building.getBuildUnit() == null) {
+				
+				return false;
+			} else {
+				return building.getBuildUnit().equals(builder);
+			}
+		}
+		
+		public boolean collidesWithConstruction(TilePosition position, UnitType unitType) {
+			
+			if (this.constructionSite != null) {
+				
+				if (this.constructionSite.getX() + this.constructionType.tileWidth() < position.getX() ||  this.constructionSite.getX() > position.getX() + unitType.tileWidth()) {
+					
+					return false;
+				} else if (this.constructionSite.getY() + this.constructionType.tileHeight() < position.getY() || this.constructionSite.getY() > position.getY() + unitType.tileHeight()) {
+					
+					return false;
+				} else {
+					
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		public boolean isDone() {
+			
+			return this.completed;
+		}
+		
+		public void drawConstructionSite(MapDrawer mapDrawer) {
+			
+			if (this.constructionSite != null) {
+				mapDrawer.drawBoxMap(this.constructionSite.getX() * 32, this.constructionSite.getY() * 32, 
+						this.constructionSite.getX() * 32 + this.constructionType.tileWidth() * 32, 
+						this.constructionSite.getY() * 32 + this.constructionType.tileHeight() * 32, Color.WHITE);
+			}
+		}
+		
+		public boolean isOfType(ConstructionType constructionType) {
+			
+			return this.constructionType == constructionType;
+		}
 	}
+	
+	private ConstructionStateMachineImpl constructionSMImpl;
+	private ConstructionStateMachine constructionSM;
 	
 	ConstructionProject(ConstructionType constructionType, MapAnalyzer mapAnalyzer, InteractionHandler interactionHandler, UnitInventory myInventory, Queue<Project> projects, TilePosition constructionSite, SCV builder) {
 		
-		this.constructionType = constructionType;
-		this.mapAnalyzer = mapAnalyzer;
-		this.interactionHandler = interactionHandler;
-		this.myInventory = myInventory;
-		this.projects = projects;
-		this.constructionSite = constructionSite;
-		this.builder = builder;
-		
-		this.done = false;
-		this.started = false;
-		this.building = null;
-		this.queuedGas = this.constructionType.getGasPrice();
-		this.queuedMinerals = this.constructionType.getMineralPrice();
-		if (this.constructionSite != null) {
-			
-			if (this.builder != null) {
-				
-				findConstructionSite(this.builder);
-				estimateMining(this.builder);
-			} else {
-				
-				SCV tmpBuilder = myInventory.getAvailableWorkers().min(
-						(u1, u2) -> Integer.compare(mapAnalyzer.getGroundDistance(u1.getTilePosition(), constructionSite), 
-													mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite))).orElse(null);
-				findConstructionSite(tmpBuilder);
-				estimateMining(tmpBuilder);
-			}
-		}
+		this.constructionSMImpl = new ConstructionStateMachineImpl(constructionType, mapAnalyzer, interactionHandler, myInventory, projects, constructionSite, builder);
+		StateMachine stateMachine = StateMachineFactory.getInstance(Transition.class).create(ConstructionStateMachineImpl.QUEUED, this.constructionSMImpl);
+		this.constructionSM = new StateMachineProxyBuilder().create(ConstructionStateMachine.class, stateMachine);
 	}
-	
-	private void estimateMining(SCV builder) {
-		
-		double distance = this.mapAnalyzer.getGroundDistance(builder.getTilePosition(), constructionSite);
-		double travelTimetoConstructionSite = distance / Constants.AVERAGE_SCV_SPEED;
-		this.estimatedMining = (int)PPF2.calculateEstimatedMining((int)travelTimetoConstructionSite, (int)this.myInventory.getAvailableWorkers().count() - 1);
-		this.estimatedGas = (int)(this.myInventory.getRefineries().stream()
-				.map(r -> (Refinery)r).mapToDouble(r -> r.getMiningRate()).sum() * travelTimetoConstructionSite);
-		
-	}
-	
+
+	@Override
 	public void onFrame(Message message) {
 		
-		if (constructionSite == null) {
-		
-			SCV tmpBuilder = myInventory.getAvailableWorkers().max((u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints())).orElse(null);
-			
-			findConstructionSite(tmpBuilder);
-			estimateMining(tmpBuilder);
-		}
-	
-		if (!started
-				&& (message.getMinerals() + estimatedMining >= this.constructionType.getMineralPrice() && message.getGas() + estimatedGas >= this.constructionType.getGasPrice())) {
-			
-			if (this.builder == null) {
-				
-				this.builder = myInventory.getAvailableWorkers().min(
-						(u1, u2) -> Integer.compare(mapAnalyzer.getGroundDistance(u1.getTilePosition(), constructionSite), 
-													mapAnalyzer.getGroundDistance(u2.getTilePosition(), constructionSite))).orElse(null);
-			}
-			
-			if (this.builder != null) {
-				
-				logger.trace("estimated resources on arrival meets requirements. Sending {} to build {}.", this.builder, this.constructionType);
-				this.builder.construct(constructionSite, constructionType);
-				this.started = true;
-			}
-		}
+		this.constructionSM.onFrame(message);
 	}
 
-	public void updateConstructionSite(TilePosition newSite) {
-		
-		// TODO this is very volatile because we don't know in what state we are in. Proper solution: implement update as a message to self
-		this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects, newSite);
-		if (this.builder != null) {
-			this.builder.move(newSite.toPosition());
-			logger.debug("{}: moving builder {} to updated location at {}.", this.interactionHandler.getFrameCount(), this.builder, this.constructionSite);
-		}
-	}
-	
-	private void findConstructionSite(SCV builder) { 
-		
-		// TODO the OR condition makes it less robust: CCs can only be built on base location tile positions.
-		// better: attempt to free the construction site. if still not successful, find a spot nearby.
-		if (this.constructionSite == null || this.constructionType == ConstructionType.Terran_Command_Center) {
-			
-			this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects);
-		} else {
-			
-			this.constructionSite = this.constructionType.getBuildTile(builder, myInventory, mapAnalyzer, projects, this.constructionSite);
-		}
-		logger.trace("found construction site at {} for {}.", this.constructionSite, this.constructionType);
-	}
-	
-	public boolean collidesWithConstruction(TilePosition position, UnitType unitType) {
-		
-		if (this.constructionSite != null) {
-			
-			if (this.constructionSite.getX() + this.constructionType.tileWidth() < position.getX() ||  this.constructionSite.getX() > position.getX() + unitType.tileWidth()) {
-				
-				return false;
-			} else if (this.constructionSite.getY() + this.constructionType.tileHeight() < position.getY() || this.constructionSite.getY() > position.getY() + unitType.tileHeight()) {
-				
-				return false;
-			} else {
-				
-				return true;
-			}
-		}
-		return false;
-	}
-
-	public boolean isOfType(ConstructionType constructionType) {
-		
-		return this.constructionType.equals(constructionType);
-	}
-	
+	@Override
 	public int getQueuedGas() {
 		
-		return this.queuedGas;
+		return this.constructionSMImpl.getQueuedGas();
 	}
-	
+
+	@Override
 	public int getQueuedMinerals() {
 		
-		return this.queuedMinerals;
+		return this.constructionSMImpl.getQueuedMinerals();
 	}
-	
-	public boolean isConstructing(Building building) {
-		
-		if (this.building != null) {
-			
-			return this.building.equals(building);
-		} else if (building.getBuildUnit() == null) {
-			
-			return false;
-		} else {
-			return building.getBuildUnit().equals(builder);
-		}
-	}
-	
+
+	@Override
 	public void constructionStarted(Building building) {
 		
-		logger.debug("{}: Construction of {} has started.", this.interactionHandler.getFrameCount(), building);
-		this.queuedGas = 0;
-		this.queuedMinerals = 0;
-		this.building = building;
+		this.constructionSM.constructionStarted(building);
 	}
 
-	public void drawConstructionSite(MapDrawer mapDrawer) {
+	@Override
+	public boolean isConstructing(Building building) {
 		
-		if (this.constructionSite != null) {
-			mapDrawer.drawBoxMap(this.constructionSite.getX() * 32, this.constructionSite.getY() * 32, 
-					this.constructionSite.getX() * 32 + this.constructionType.tileWidth() * 32, 
-					this.constructionSite.getY() * 32 + this.constructionType.tileHeight() * 32, Color.WHITE);
-		}
+		return this.constructionSMImpl.isConstructing(building);
 	}
-	
-	public void completed() {
+
+	@Override
+	public boolean collidesWithConstruction(TilePosition position, UnitType unitType) {
 		
-		this.done = true;
-		this.builder.gatherMinerals();
+		return this.constructionSMImpl.collidesWithConstruction(position, unitType);
 	}
-	
+
+	@Override
 	public boolean isDone() {
 		
-		return this.done;
+		return this.constructionSMImpl.isDone();
 	}
 
-// TODO
-//private void finishAbandonedConstructions() {
-//	
-//	for (Building unfinished : unitInventory.getUnderConstruction()) {
-//		if (unfinished.getBuildUnit() == null && unitInventory.getAvailableWorkers().size() > 3) {
-//			
-//			Comparator<SCV> comp = (u1, u2) -> Integer.compare(u1.getHitPoints(), u2.getHitPoints());
-//			SCV worker = unitInventory.getAvailableWorkers().stream().max(comp).get();
-//			
-//			unitInventory.getAvailableWorkers().move(worker, this.constructorSquad);
-//			this.queue.stream().filter(c -> c.getConstructionSite().equals(unfinished.getTilePosition())).findFirst().ifPresent(b -> b.setAssignedWorker(worker));
-//			
-//			worker.resumeBuilding(unfinished);
-//			logger.info("found unfinished building {}. attempting to resume with worker {}", unfinished, worker);
-//		}
-//	}
-//}
+	@Override
+	public void completed() {
+		
+		this.constructionSM.completed();
+	}
+
+	@Override
+	public void drawConstructionSite(MapDrawer mapDrawer) {
+		
+		this.constructionSMImpl.drawConstructionSite(mapDrawer);
+	}
+
+	@Override
+	public boolean isOfType(ConstructionType constructionType) {
+		
+		return this.constructionSMImpl.isOfType(constructionType);
+	}
+
 }

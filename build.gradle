@@ -50,6 +50,8 @@ dependencies {
 	compile files('../BWAPI4J/BWAPI4J/build/libs/BWAPI4J.jar')
 	compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.7'
     compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.7'
+    compile group: 'org.apache.mina', name: 'mina-core', version: '2.0.16'
+    compile group: 'org.apache.mina', name: 'mina-statemachine', version: '2.0.16'
     compile group: 'com.google.code.gson', name: 'gson', version: '2.8.0'
     compile group: 'co.paralleluniverse', name: 'quasar-core', version: '0.7.7', classifier: 'jdk8'
     compile group: 'co.paralleluniverse', name: 'quasar-actors', version: '0.7.7'
